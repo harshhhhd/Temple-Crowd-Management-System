@@ -1,4 +1,3 @@
-# Smart Crowd Management System
 
 An integrated, full-stack crowd monitoring and predictive analytics ecosystem designed to manage high-density footfall and ensure devotee safety at public or religious gathering sites.
 
