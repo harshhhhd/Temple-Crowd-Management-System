@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pravaah – Pilgrim Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #5590f6; --secondary: #2d71f9; --accent: #8b5cf6;
+            --success: #22c55e; --warning: #eab308; --danger: #ef4444; --info: #3b82f6;
+            --dark-bg: #0f0f1e; --card-bg: #1a1d29; --sidebar-bg: #141624;
+            --border: #2d3142; --text-1: #ffffff; --text-2: #94a3b8;
+        }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--dark-bg); color: var(--text-1); overflow-x: hidden; min-height: 100vh; }
+
+        /* ── LAYOUT ── */
+        .app-wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: 270px; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; height: 100vh; overflow-y: auto; z-index: 200; transition: transform 0.3s; }
+        .main { flex: 1; margin-left: 270px; display: flex; flex-direction: column; }
+
+        /* ── SIDEBAR ── */
+        .sb-header { padding: 22px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+        .sb-logo { width: 44px; height: 44px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; color: white; flex-shrink: 0; }
+        .sb-brand { font-size: 18px; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .sb-tagline { font-size: 10px; color: var(--text-2); }
+        .sb-user { margin: 16px; padding: 14px; background: rgba(255,107,53,0.08); border-radius: 14px; border: 1px solid rgba(255,107,53,0.15); }
+        .sb-user-avatar { width: 46px; height: 46px; background: linear-gradient(135deg, var(--accent), var(--info)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 10px; }
+        .sb-user-name { font-size: 15px; font-weight: 700; }
+        .sb-user-id { font-size: 11px; color: var(--text-2); }
+        .sb-nav { flex: 1; padding: 8px 0; }
+        .nav-link { display: flex; align-items: center; gap: 12px; padding: 13px 20px; color: var(--text-2); text-decoration: none; cursor: pointer; transition: all 0.25s; border-left: 3px solid transparent; font-size: 14px; }
+        .nav-link:hover { background: rgba(255,107,53,0.08); color: var(--text-1); }
+        .nav-link.active { background: rgba(255,107,53,0.13); color: var(--primary); border-left-color: var(--primary); }
+        .nav-link i { font-size: 16px; width: 20px; }
+        .nav-section-title { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-2); padding: 14px 20px 6px; opacity: 0.6; }
+        .sb-footer { padding: 16px; border-top: 1px solid var(--border); }
+        .btn-logout { width: 100%; padding: 11px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--danger); border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; font-size: 13px; transition: all 0.25s; }
+        .btn-logout:hover { background: rgba(239,68,68,0.18); }
+
+        /* ── TOP BAR ── */
+        .topbar { background: var(--card-bg); padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .topbar-left { display: flex; align-items: center; gap: 14px; }
+        .menu-btn { display: none; background: none; border: none; color: var(--text-1); font-size: 20px; cursor: pointer; }
+        .page-title { font-size: 20px; font-weight: 700; }
+        .page-sub { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+        .topbar-right { display: flex; align-items: center; gap: 18px; }
+        .topbar-time { text-align: right; }
+        .topbar-time .date { font-size: 11px; color: var(--text-2); }
+        .topbar-time .time { font-size: 15px; font-weight: 700; color: var(--primary); }
+        .live-pill { display: flex; align-items: center; gap: 6px; background: rgba(239,68,68,0.12); color: var(--danger); padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+        .live-pill::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--danger); animation: pulse 1s infinite; }
+
+        /* ── SECTIONS ── */
+        .section { display: none; padding: 26px 28px; animation: fadeUp 0.35s ease; }
+        .section.active { display: block; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.3)} }
+
+        /* ── CARDS ── */
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-bottom: 20px; }
+        .card-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .card-header h3 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 9px; }
+        .card-header h3 i { color: var(--primary); }
+        .card-body { padding: 20px 22px; }
+        .card-sub { font-size: 12px; color: var(--text-2); }
+
+        /* ── STATS STRIP ── */
+        .stats-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+        .stat-box { background: var(--card-bg); border: 1px solid var(--border); border-radius: 14px; padding: 18px; display: flex; align-items: center; gap: 14px; transition: transform 0.2s; }
+        .stat-box:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        .si-blue   { background:rgba(59,130,246,.15); color:var(--info); }
+        .si-orange { background:rgba(247,147,30,.15); color:var(--secondary); }
+        .si-green  { background:rgba(34,197,94,.15);  color:var(--success); }
+        .si-purple { background:rgba(139,92,246,.15); color:var(--accent); }
+        .stat-box h4 { font-size: 24px; font-weight: 800; line-height: 1; margin-bottom: 3px; }
+        .stat-box p  { font-size: 11px; color: var(--text-2); }
+        .crowd-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; margin-top: 4px; }
+        .cb-low    { background:rgba(34,197,94,.15);   color:var(--success); }
+        .cb-medium { background:rgba(234,179,8,.15);   color:var(--warning); }
+        .cb-high   { background:rgba(239,68,68,.15);   color:var(--danger); }
+
+        /* ── CROWD GAUGE ── */
+        .gauge-wrap { display: flex; align-items: center; gap: 30px; }
+        .gauge-circle { position: relative; width: 160px; height: 160px; flex-shrink: 0; }
+        .gauge-circle svg { transform: rotate(-90deg); }
+        .gauge-bg { fill:none; stroke: var(--border); stroke-width: 12; }
+        .gauge-fill { fill:none; stroke-width: 12; stroke-linecap: round; transition: stroke-dashoffset 1s ease, stroke 0.5s ease; }
+        .gauge-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .gauge-pct { font-size: 30px; font-weight: 800; }
+        .gauge-label { font-size: 10px; color: var(--text-2); }
+        .gauge-details { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .gd-item { background: var(--dark-bg); border-radius: 10px; padding: 12px 14px; border: 1px solid var(--border); }
+        .gd-label { font-size: 10px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+        .gd-value { font-size: 20px; font-weight: 700; }
+        .gd-sub   { font-size: 10px; color: var(--text-2); margin-top: 2px; }
+
+        /* ── ZONE BARS ── */
+        .zone-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+        .zr-name  { font-size: 12px; color: var(--text-2); width: 80px; flex-shrink: 0; }
+        .zr-track { flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+        .zr-fill  { height: 100%; border-radius: 5px; transition: width 1s ease; }
+        .zr-count { font-size: 12px; font-weight: 700; width: 45px; text-align: right; }
+
+        /* ── CHART ── */
+        .chart-wrap { position: relative; height: 220px; }
+
+        /* ── 7 DAY GRID ── */
+        .week-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 8px; }
+        .day-cell { background: var(--dark-bg); border-radius: 10px; padding: 12px 6px; text-align: center; border: 1px solid var(--border); cursor: pointer; transition: all 0.2s; }
+        .day-cell:hover, .day-cell.selected { border-color: var(--primary); background: rgba(255,107,53,0.08); }
+        .day-cell.today { border-color: var(--info); }
+        .day-name  { font-size: 9px; color: var(--text-2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+        .day-crowd { font-size: 18px; font-weight: 800; }
+        .day-level { font-size: 9px; margin-top: 4px; padding: 2px 5px; border-radius: 10px; }
+        .dl-low    { background:rgba(34,197,94,.15); color:var(--success); }
+        .dl-medium { background:rgba(234,179,8,.15); color:var(--warning); }
+        .dl-high   { background:rgba(239,68,68,.15); color:var(--danger); }
+
+        /* ── BOOKING SECTION ── */
+        .booking-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .field label { font-size: 12px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 6px; }
+        .field input, .field select { width: 100%; padding: 11px 14px; background: var(--dark-bg); border: 2px solid var(--border); border-radius: 10px; color: var(--text-1); font-size: 14px; outline: none; transition: all 0.3s; }
+        .field input:focus, .field select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
+        .btn-book { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; border-radius: 11px; color: white; font-size: 15px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px; transition: all 0.3s; }
+        .btn-book:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,107,53,0.35); }
+        .slot-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-top: 4px; }
+        .slot-btn { padding: 9px 6px; border: 2px solid var(--border); border-radius: 9px; background: var(--dark-bg); color: var(--text-1); font-size: 12px; cursor: pointer; text-align: center; transition: all 0.2s; }
+        .slot-btn:hover:not(:disabled) { border-color: var(--primary); background: rgba(255,107,53,0.08); }
+        .slot-btn.selected { border-color: var(--primary); background: rgba(255,107,53,0.15); color: var(--primary); font-weight: 700; }
+        .slot-btn:disabled, .slot-btn.booked { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.2); color: var(--danger); cursor: not-allowed; font-size: 10px; }
+        .slot-btn.available { border-color: rgba(34,197,94,0.3); }
+        .slot-status { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+        .sl { display: flex; align-items: center; gap: 6px; font-size: 11px; }
+        .sl-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+        /* ── MY BOOKINGS TABLE ── */
+        .bookings-list { display: flex; flex-direction: column; gap: 12px; }
+        .booking-card { background: var(--dark-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
+        .booking-card:hover { transform: translateY(-2px); border-color: var(--primary); }
+        .bk-info { flex: 1; }
+        .bk-temple { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+        .bk-details { font-size: 12px; color: var(--text-2); display: flex; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+        .bk-details span { display: flex; align-items: center; gap: 5px; }
+        .bk-id { font-size: 10px; color: var(--text-2); margin-top: 4px; }
+        .bk-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+        .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .badge-confirmed { background:rgba(34,197,94,.15); color:var(--success); }
+        .badge-pending   { background:rgba(234,179,8,.15);  color:var(--warning); }
+        .badge-cancelled { background:rgba(239,68,68,.15);  color:var(--danger); }
+        .btn-cancel { padding: 5px 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--danger); border-radius: 7px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .btn-cancel:hover { background: rgba(239,68,68,0.2); }
+        .btn-sm { padding: 5px 12px; background: rgba(255,107,53,0.12); border: 1px solid rgba(255,107,53,0.25); color: var(--primary); border-radius: 7px; cursor: pointer; font-size: 12px; transition: all 0.2s; }
+        .btn-sm:hover { background: rgba(255,107,53,0.2); }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-2); }
+        .empty-state i { font-size: 48px; color: var(--border); margin-bottom: 14px; }
+        .empty-state p { font-size: 14px; }
+        .empty-state a { color: var(--primary); cursor: pointer; text-decoration: none; }
+
+        /* ── TIPS ── */
+        .tips-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+        .tip-card { background: var(--dark-bg); border-radius: 12px; padding: 18px; border: 1px solid var(--border); text-align: center; }
+        .tip-icon { font-size: 30px; margin-bottom: 10px; }
+        .tip-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+        .tip-text  { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+
+        /* ── MODAL ── */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(4px); }
+        .modal.hidden { display: none; }
+        .modal-box { background: var(--card-bg); border-radius: 18px; padding: 0; width: 500px; max-width: 95vw; border: 1px solid var(--border); animation: fadeUp 0.3s ease; }
+        .modal-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .modal-head h3 { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+        .modal-head h3 i { color: var(--success); }
+        .modal-body { padding: 22px; }
+        .modal-foot { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        .modal-close { background: none; border: none; color: var(--text-2); font-size: 18px; cursor: pointer; }
+        .conf-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(45,49,66,0.5); font-size: 14px; }
+        .conf-label { color: var(--text-2); }
+        .conf-val { font-weight: 600; }
+        .conf-id { text-align: center; margin: 18px 0 10px; }
+        .conf-id .bid { font-size: 22px; font-weight: 800; color: var(--primary); letter-spacing: 2px; }
+        .conf-id p { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+
+        /* ── NOTIFICATION ── */
+        .notif { position: fixed; top: 20px; right: 20px; padding: 14px 20px; border-radius: 12px; z-index: 10000; animation: slideR 0.3s ease; display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px; max-width: 360px; }
+        .notif.success { background: var(--success); color: white; }
+        .notif.error   { background: var(--danger);  color: white; }
+        .notif.warning { background: var(--warning); color: #1a1d29; }
+        .notif.hidden  { display: none; }
+        @keyframes slideR { from{opacity:0;transform:translateX(80px)} to{opacity:1;transform:translateX(0)} }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 1050px) { .stats-strip{grid-template-columns:1fr 1fr} .booking-grid{grid-template-columns:1fr} .gauge-wrap{flex-direction:column} .tips-grid{grid-template-columns:1fr 1fr} .week-grid{grid-template-columns:repeat(4,1fr)} }
+        @media (max-width: 768px) { .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0)} .main{margin-left:0} .menu-btn{display:block} .stats-strip{grid-template-columns:1fr 1fr} .section{padding:18px 16px} .topbar{padding:14px 18px} .week-grid{grid-template-columns:repeat(4,1fr)} .tips-grid{grid-template-columns:1fr} .form-row{grid-template-columns:1fr} }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sb-header">
+            <div class="sb-logo"><i class="fas fa-om"></i></div>
+            <div><div class="sb-brand">PRAVAAH</div><div class="sb-tagline">Sacred Space Intelligence</div></div>
+        </div>
+        <div class="sb-user">
+            <div class="sb-user-avatar"><i class="fas fa-user"></i></div>
+            <div class="sb-user-name" id="sbUserName">Pilgrim</div>
+            <div class="sb-user-id" id="sbUserId">ID: ---</div>
+        </div>
+        <nav class="sb-nav">
+            <div class="nav-section-title">Main</div>
+            <a class="nav-link active" data-section="home"><i class="fas fa-home"></i><span>Home / Crowd Status</span></a>
+            <a class="nav-link" data-section="predictions"><i class="fas fa-brain"></i><span>AI Predictions</span></a>
+            <div class="nav-section-title">Darshan</div>
+            <a class="nav-link" data-section="booking"><i class="fas fa-ticket-alt"></i><span>Book Darshan</span></a>
+            <a class="nav-link" data-section="mybookings"><i class="fas fa-calendar-check"></i><span>My Bookings</span></a>
+            <div class="nav-section-title">Info</div>
+            <a class="nav-link" data-section="tips"><i class="fas fa-lightbulb"></i><span>Visit Tips</span></a>
+        </nav>
+        <div class="sb-footer">
+            <button class="btn-logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="menu-btn" id="menuBtn"><i class="fas fa-bars"></i></button>
+                <div>
+                    <div class="page-title" id="pageTitle">Home / Crowd Status</div>
+                    <div class="page-sub" id="pageSub">Live temple information</div>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <div class="topbar-time"><div class="date" id="topDate"></div><div class="time" id="topTime"></div></div>
+                <div class="live-pill">LIVE</div>
+            </div>
+        </header>
+
+        <!-- ══ HOME SECTION ══ -->
+        <section id="home" class="section active">
+
+            <!-- Temple selector -->
+            <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+                <button class="slot-btn selected" data-t="kedarnath" onclick="switchTemple('kedarnath',this)" style="width:auto;padding:9px 18px">⛰ Kedarnath</button>
+                <button class="slot-btn" data-t="somnath" onclick="switchTemple('somnath',this)" style="width:auto;padding:9px 18px">🏛 Somnath</button>
+            </div>
+
+            <!-- Stats strip -->
+            <div class="stats-strip">
+                <div class="stat-box"><div class="stat-icon si-blue"><i class="fas fa-users"></i></div><div><h4 id="stat-visitors">1,067</h4><p>Current Visitors</p><span class="crowd-badge cb-medium" id="stat-crowd-level">Moderate</span></div></div>
+                <div class="stat-box"><div class="stat-icon si-orange"><i class="fas fa-clock"></i></div><div><h4 id="stat-wait">32 min</h4><p>Avg Wait Time</p><span class="crowd-badge cb-low" id="stat-wait-level">Normal</span></div></div>
+                <div class="stat-box"><div class="stat-icon si-green"><i class="fas fa-percent"></i></div><div><h4 id="stat-cap">56%</h4><p>Capacity Used</p><span class="crowd-badge" id="stat-cap-badge">Normal</span></div></div>
+                <div class="stat-box"><div class="stat-icon si-purple"><i class="fas fa-ticket-alt"></i></div><div><h4 id="stat-slots">142</h4><p>Slots Available</p><span class="crowd-badge cb-low">Today</span></div></div>
+            </div>
+
+            <!-- Crowd Gauge -->
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-chart-pie"></i> Live Crowd Gauge</h3><span class="card-sub" id="gaugeTplName">Kedarnath Temple</span></div>
+                <div class="card-body">
+                    <div class="gauge-wrap">
+                        <div class="gauge-circle">
+                            <svg viewBox="0 0 160 160" width="160" height="160">
+                                <circle class="gauge-bg" cx="80" cy="80" r="64"/>
+                                <circle class="gauge-fill" id="gaugeFill" cx="80" cy="80" r="64" stroke="#ff6b35" stroke-dasharray="402" stroke-dashoffset="177"/>
+                            </svg>
+                            <div class="gauge-text"><span class="gauge-pct" id="gaugePct">56%</span><span class="gauge-label">Capacity</span></div>
+                        </div>
+                        <div class="gauge-details">
+                            <div class="gd-item"><div class="gd-label">Visitors Now</div><div class="gd-value" id="gdVisitors">1,067</div><div class="gd-sub">people inside</div></div>
+                            <div class="gd-item"><div class="gd-label">Max Capacity</div><div class="gd-value" id="gdMax">1,900</div><div class="gd-sub">total capacity</div></div>
+                            <div class="gd-item"><div class="gd-label">Wait Time</div><div class="gd-value" id="gdWait">32 min</div><div class="gd-sub">at main gate</div></div>
+                            <div class="gd-item"><div class="gd-label">Best Time</div><div class="gd-value" id="gdBest">06:00</div><div class="gd-sub">recommended</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone Breakdown -->
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-map-marked-alt"></i> Zone-wise Crowd</h3><span class="live-pill">LIVE</span></div>
+                <div class="card-body" id="zoneBreakdown">
+                    <!-- rendered by JS -->
+                </div>
+            </div>
+
+            <!-- Hourly Chart -->
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Today's Hourly Crowd</h3><span class="card-sub">Live + predicted</span></div>
+                <div class="card-body"><div class="chart-wrap"><canvas id="homeHourlyChart"></canvas></div></div>
+            </div>
+        </section>
+
+        <!-- ══ PREDICTIONS SECTION ══ -->
+        <section id="predictions" class="section">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-brain"></i> AI Crowd Predictions</h3><span class="card-sub" id="predTplName">Kedarnath Temple</span></div>
+                <div class="card-body">
+                    <div class="chart-wrap" style="height:240px"><canvas id="pred6hChart"></canvas></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-calendar-week"></i> Next 7 Days Forecast</h3><span class="card-sub">Click a day to see hourly breakdown</span></div>
+                <div class="card-body">
+                    <div class="week-grid" id="weekGrid"></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-lightbulb"></i> AI Visit Recommendation</h3></div>
+                <div class="card-body" id="aiRecommendation"><!-- rendered --></div>
+            </div>
+        </section>
+
+        <!-- ══ BOOKING SECTION ══ -->
+        <section id="booking" class="section">
+            <div class="booking-grid">
+                <!-- Left: Form -->
+                <div class="card">
+                    <div class="card-header"><h3><i class="fas fa-ticket-alt"></i> Book Darshan Slot</h3></div>
+                    <div class="card-body">
+                        <div class="field">
+                            <label><i class="fas fa-place-of-worship"></i> Select Temple</label>
+                            <select id="bkTemple">
+                                <option value="kedarnath">Kedarnath Temple</option>
+                                <option value="somnath">Somnath Temple</option>
+                                
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <div class="field">
+                                <label><i class="fas fa-calendar"></i> Date</label>
+                                <input type="date" id="bkDate">
+                            </div>
+                            <div class="field">
+                                <label><i class="fas fa-users"></i> Pilgrims</label>
+                                <select id="bkPilgrims">
+                                    <option value="1">1 Person</option>
+                                    <option value="2">2 Persons</option>
+                                    <option value="3">3 Persons</option>
+                                    <option value="4">4 Persons</option>
+                                    <option value="5">5 Persons</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label><i class="fas fa-id-card"></i> Full Name</label>
+                            <input type="text" id="bkName" placeholder="Enter full name">
+                        </div>
+                        <div class="field">
+                            <label><i class="fas fa-phone"></i> Mobile Number</label>
+                            <input type="tel" id="bkPhone" placeholder="10-digit mobile number" maxlength="10">
+                        </div>
+                        <div class="field">
+                            <label><i class="fas fa-tag"></i> Darshan Type</label>
+                            <select id="bkType">
+                                <option value="General">General Darshan (Free)</option>
+                                <option value="VIP">VIP Darshan (₹500/person)</option>
+                                <option value="Express">Express Darshan (₹200/person)</option>
+                                <option value="Senior">Senior Citizen (Free)</option>
+                            </select>
+                        </div>
+                        <button class="btn-book" id="confirmBookBtn" onclick="confirmBooking()">
+                            <i class="fas fa-check-circle"></i> Confirm Booking
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Slot Picker -->
+                <div>
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-clock"></i> Select Time Slot</h3><span class="card-sub" id="slotDateLabel"></span></div>
+                        <div class="card-body">
+                            <div class="slot-status">
+                                <div class="sl"><div class="sl-dot" style="background:rgba(34,197,94,.5);border:1px solid var(--success)"></div> Available</div>
+                                <div class="sl"><div class="sl-dot" style="background:rgba(255,107,53,.5);border:1px solid var(--primary)"></div> Selected</div>
+                                <div class="sl"><div class="sl-dot" style="background:rgba(239,68,68,.15);border:1px solid var(--danger)"></div> Full/Booked</div>
+                            </div>
+                            <div class="slot-grid" id="slotGrid"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header"><h3><i class="fas fa-chart-line"></i> Crowd Prediction for Selected Day</h3></div>
+                        <div class="card-body"><div class="chart-wrap"><canvas id="bookingDayChart"></canvas></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ MY BOOKINGS SECTION ══ -->
+        <section id="mybookings" class="section">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-calendar-check"></i> My Bookings</h3>
+                    <span class="card-sub" id="myBookingsCount">0 bookings</span>
+                </div>
+                <div class="card-body">
+                    <div class="bookings-list" id="bookingsList"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ══ TIPS SECTION ══ -->
+        <section id="tips" class="section">
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header"><h3><i class="fas fa-lightbulb"></i> Visit Tips & Guidelines</h3></div>
+                <div class="card-body">
+                    <div class="tips-grid" id="tipsGrid"></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-phone-alt"></i> Emergency Contacts</h3></div>
+                <div class="card-body">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+                        <div style="background:var(--dark-bg);border-radius:12px;padding:16px;border:1px solid var(--border);display:flex;align-items:center;gap:12px"><i class="fas fa-phone-alt" style="font-size:24px;color:var(--success)"></i><div><div style="font-size:12px;color:var(--text-2)">Temple Helpline</div><div style="font-size:20px;font-weight:800">1800-XXX-XXX</div></div></div>
+                        <div style="background:var(--dark-bg);border-radius:12px;padding:16px;border:1px solid var(--border);display:flex;align-items:center;gap:12px"><i class="fas fa-ambulance" style="font-size:24px;color:var(--danger)"></i><div><div style="font-size:12px;color:var(--text-2)">Ambulance</div><div style="font-size:20px;font-weight:800">108</div></div></div>
+                        <div style="background:var(--dark-bg);border-radius:12px;padding:16px;border:1px solid var(--border);display:flex;align-items:center;gap:12px"><i class="fas fa-shield-alt" style="font-size:24px;color:var(--info)"></i><div><div style="font-size:12px;color:var(--text-2)">Police</div><div style="font-size:20px;font-weight:800">100</div></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<!-- Booking Confirmation Modal -->
+<div class="modal hidden" id="confirmModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <h3><i class="fas fa-check-circle"></i> Booking Confirmed!</h3>
+            <button class="modal-close" onclick="document.getElementById('confirmModal').classList.add('hidden')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="conf-id"><div class="bid" id="confBid"></div><p>Your Booking ID — Save this for reference</p></div>
+            <div id="confDetails"></div>
+            <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);border-radius:10px;padding:12px;margin-top:14px;font-size:12px;color:var(--text-2);line-height:1.6">
+                <i class="fas fa-info-circle" style="color:var(--success)"></i> Please arrive 15 minutes before your slot. Carry a valid ID proof. Entry will be based on this booking ID.
+            </div>
+        </div>
+        <div class="modal-foot">
+            <button class="btn-sm" onclick="document.getElementById('confirmModal').classList.add('hidden');showSection('mybookings')">View My Bookings</button>
+            <button class="btn-book" style="width:auto;padding:10px 22px" onclick="document.getElementById('confirmModal').classList.add('hidden')"><i class="fas fa-home"></i> Back to Home</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="notif hidden" id="toast"><span id="toastMsg"></span></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════
+const TEMPLES = {
+    kedarnath: { name:'Kedarnath Temple', location:'Rudraprayag, Uttarakhand', maxCap:1900, bestTime:'06:00', hourly:{0:313,1:299,2:361,3:371,4:365,5:396,6:530,7:544,8:630,9:820,10:1017,11:1067,12:1234,13:1273,14:1401,15:1301,16:1242,17:1048,18:959,19:759,20:674,21:615,22:435,23:362}, daily:{0:720,1:700,2:719,3:687,4:667,5:874,6:907} },
+    somnath:   { name:'Somnath Temple',   location:'Veraval, Gujarat',         maxCap:1400, bestTime:'07:00', hourly:{0:256,1:237,2:279,3:259,4:274,5:346,6:327,7:414,8:529,9:598,10:711,11:820,12:906,13:969,14:976,15:993,16:875,17:824,18:679,19:561,20:508,21:392,22:325,23:289}, daily:{0:521,1:501,2:520,3:520,4:519,5:670,6:659} },
+};
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const ZONE_RATIOS = { entrance:0.25, sanctum:0.30, queue:0.35, exit:0.10 };
+
+let activeTemple = 'kedarnath';
+let homeChart = null, pred6hChart = null, bkDayChart = null;
+let selectedSlot = null;
+let myBookings = JSON.parse(localStorage.getItem('myBookings') || '[]');
+let session = null;
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    // Auth check
+    const s = sessionStorage.getItem('userSession');
+    if (!s || JSON.parse(s).role !== 'user') { window.location.href = 'login.html'; return; }
+    session = JSON.parse(s);
+    document.getElementById('sbUserName').textContent = session.name || session.userId;
+    document.getElementById('sbUserId').textContent   = 'ID: ' + session.userId;
+
+    initNav();
+    initDateTime();
+    renderHome();
+    initBookingSection();
+
+    // Set min date for booking
+    const bkDate = document.getElementById('bkDate');
+    const today = new Date().toISOString().split('T')[0];
+    bkDate.min = today;
+    bkDate.value = today;
+    bkDate.addEventListener('change', () => { renderSlots(); renderBkDayChart(); updateSlotDateLabel(); });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        if (confirm('Logout?')) { sessionStorage.removeItem('userSession'); window.location.href = 'login.html'; }
+    });
+    document.getElementById('menuBtn').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+
+    setInterval(() => { if (document.getElementById('home').classList.contains('active')) refreshHomeStats(); }, 5000);
+});
+
+function initNav() {
+    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            showSection(link.dataset.section);
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+            if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+        });
+    });
+}
+function showSection(id) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const link = document.querySelector(`.nav-link[data-section="${id}"]`);
+    if (link) {
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById('pageTitle').textContent = link.querySelector('span').textContent;
+    }
+    if (id === 'predictions')  renderPredictions();
+    if (id === 'mybookings')   renderMyBookings();
+    if (id === 'tips')         renderTips();
+}
+
+function initDateTime() {
+    const tick = () => {
+        const now = new Date();
+        document.getElementById('topDate').textContent = now.toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+        document.getElementById('topTime').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    };
+    tick(); setInterval(tick, 1000);
+}
+
+// ═══════════════════════════════════════════════════
+//  HOME
+// ═══════════════════════════════════════════════════
+function renderHome() {
+    const d = TEMPLES[activeTemple];
+    const now = new Date();
+    const total = d.hourly[now.getHours()];
+    const cap = Math.round(total / d.maxCap * 100);
+    const wait = Math.round(10 + cap * 0.5);
+    const slots = Math.max(0, 200 - Math.round(cap * 1.2));
+
+    document.getElementById('stat-visitors').textContent = total.toLocaleString();
+    document.getElementById('stat-wait').textContent = wait + ' min';
+    document.getElementById('stat-cap').textContent  = cap + '%';
+    document.getElementById('stat-slots').textContent = slots;
+    document.getElementById('gaugeTplName').textContent = d.name;
+    document.getElementById('gdVisitors').textContent = total.toLocaleString();
+    document.getElementById('gdMax').textContent = d.maxCap.toLocaleString();
+    document.getElementById('gdWait').textContent = wait + ' min';
+    document.getElementById('gdBest').textContent = d.bestTime;
+
+    const level = cap < 50 ? 'Low' : cap < 80 ? 'Moderate' : 'High';
+    const cbClass = cap < 50 ? 'cb-low' : cap < 80 ? 'cb-medium' : 'cb-high';
+    document.getElementById('stat-crowd-level').textContent = level;
+    document.getElementById('stat-crowd-level').className = 'crowd-badge ' + cbClass;
+    document.getElementById('stat-wait-level').textContent = wait > 45 ? 'Above Avg' : 'Normal';
+    document.getElementById('stat-wait-level').className   = 'crowd-badge ' + (wait > 45 ? 'cb-high' : 'cb-low');
+    const capBadge = document.getElementById('stat-cap-badge');
+    capBadge.textContent = cap < 50 ? 'Normal' : cap < 80 ? 'Moderate' : 'High';
+    capBadge.className   = 'crowd-badge ' + cbClass;
+
+    // Gauge
+    const circ = 2 * Math.PI * 64;
+    document.getElementById('gaugeFill').style.strokeDashoffset = circ - (cap/100) * circ;
+    document.getElementById('gaugeFill').style.stroke = cap < 50 ? '#22c55e' : cap < 80 ? '#eab308' : '#ef4444';
+    document.getElementById('gaugePct').textContent = cap + '%';
+    document.getElementById('gaugePct').style.color = cap < 50 ? '#22c55e' : cap < 80 ? '#eab308' : '#ef4444';
+
+    renderZones(d, total);
+    renderHomeChart(d, now);
+}
+function refreshHomeStats() { renderHome(); }
+
+function renderZones(d, total) {
+    const container = document.getElementById('zoneBreakdown');
+    const zones = [
+        { name:'Entrance Zone', ratio:ZONE_RATIOS.entrance, color:'var(--info)' },
+        { name:'Sanctum Zone',  ratio:ZONE_RATIOS.sanctum,  color:'var(--success)' },
+        { name:'Queue Zone',    ratio:ZONE_RATIOS.queue,    color:'var(--warning)' },
+        { name:'Exit Zone',     ratio:ZONE_RATIOS.exit,     color:'var(--text-2)' }
+    ];
+    container.innerHTML = zones.map(z => {
+        const count = Math.round(total * z.ratio);
+        const pct   = Math.round(z.ratio * 100);
+        return `<div class="zone-row">
+            <span class="zr-name">${z.name}</span>
+            <div class="zr-track"><div class="zr-fill" style="width:${pct}%;background:${z.color}"></div></div>
+            <span class="zr-count">${count}</span>
+        </div>`;
+    }).join('');
+}
+
+function renderHomeChart(d, now) {
+    const ctx = document.getElementById('homeHourlyChart');
+    if (!ctx) return;
+    if (homeChart) { homeChart.destroy(); homeChart = null; }
+    const labels = [], data = [], colors = [];
+    for (let h = 0; h < 24; h++) {
+        labels.push(h.toString().padStart(2,'0') + ':00');
+        data.push(d.hourly[h]);
+        const c = h <= now.getHours() ? 'rgba(255,107,53,0.75)' : 'rgba(255,107,53,0.25)';
+        colors.push(c);
+    }
+    homeChart = new Chart(ctx.getContext('2d'), {
+        type:'bar', data:{ labels, datasets:[{ label:'Visitors', data, backgroundColor:colors, borderRadius:5 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+            scales:{ x:{ticks:{color:'#94a3b8',font:{size:10}}, grid:{color:'rgba(45,49,66,.4)'}},
+                     y:{ticks:{color:'#94a3b8',font:{size:10}}, grid:{color:'rgba(45,49,66,.4)'},beginAtZero:true} } }
+    });
+}
+
+function switchTemple(t, btn) {
+    activeTemple = t;
+    document.querySelectorAll('[data-t]').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    document.getElementById('predTplName').textContent = TEMPLES[t].name;
+    renderHome();
+    if (document.getElementById('predictions').classList.contains('active')) renderPredictions();
+}
+
+// ═══════════════════════════════════════════════════
+//  PREDICTIONS
+// ═══════════════════════════════════════════════════
+function renderPredictions() {
+    const d = TEMPLES[activeTemple];
+    const now = new Date();
+    const ctx = document.getElementById('pred6hChart');
+    if (ctx) {
+        if (pred6hChart) { pred6hChart.destroy(); pred6hChart = null; }
+        const labels = [], data = [], ptColors = [];
+        for (let i = 0; i < 8; i++) {
+            const h = (now.getHours() + i) % 24;
+            labels.push(h.toString().padStart(2,'0') + ':00');
+            const v = d.hourly[h];
+            data.push(v);
+            const pct = v / d.maxCap;
+            ptColors.push(pct > 0.8 ? 'rgba(239,68,68,.9)' : pct > 0.5 ? 'rgba(234,179,8,.9)' : 'rgba(34,197,94,.9)');
+        }
+        pred6hChart = new Chart(ctx.getContext('2d'), {
+            type:'line', data:{ labels, datasets:[{ label:'Predicted Visitors', data, borderColor:'var(--primary)', backgroundColor:'rgba(255,107,53,0.12)', pointBackgroundColor:ptColors, pointRadius:6, tension:0.4, fill:true }] },
+            options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+                scales:{ x:{ticks:{color:'#94a3b8',font:{size:11}}, grid:{color:'rgba(45,49,66,.4)'}},
+                         y:{ticks:{color:'#94a3b8',font:{size:11}}, grid:{color:'rgba(45,49,66,.4)'},beginAtZero:true} } }
+        });
+    }
+    // 7 day grid
+    const wg = document.getElementById('weekGrid'); if (!wg) return;
+    wg.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+        const dt = new Date(now); dt.setDate(dt.getDate() + i);
+        const dow = (dt.getDay() + 6) % 7;
+        const crowd = d.daily[dow];
+        const pct = crowd / d.maxCap;
+        const lvl = pct > 0.8 ? 'high' : pct > 0.5 ? 'medium' : 'low';
+        const div = document.createElement('div');
+        div.className = 'day-cell' + (i === 0 ? ' today' : '');
+        div.innerHTML = `<div class="day-name">${DAYS[dow]}</div><div class="day-crowd" style="color:${pct>.8?'var(--danger)':pct>.5?'var(--warning)':'var(--success)'}">${crowd.toLocaleString()}</div><div class="day-level dl-${lvl}">${lvl.charAt(0).toUpperCase()+lvl.slice(1)}</div>`;
+        wg.appendChild(div);
+    }
+    // AI Recommendation
+    const rec = document.getElementById('aiRecommendation');
+    const curH = now.getHours();
+    const curV = d.hourly[curH];
+    const curPct = Math.round(curV / d.maxCap * 100);
+    const bestH = Object.entries(d.hourly).sort((a,b)=>a[1]-b[1])[0];
+    const worstH= Object.entries(d.hourly).sort((a,b)=>b[1]-a[1])[0];
+    rec.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px">
+        <div style="background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:16px">
+            <div style="color:var(--success);font-weight:700;margin-bottom:6px"><i class="fas fa-thumbs-up"></i> Best Time to Visit</div>
+            <div style="font-size:22px;font-weight:800">${parseInt(bestH[0]).toString().padStart(2,'0')}:00</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:4px">Only ~${bestH[1]} visitors expected</div>
+        </div>
+        <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:16px">
+            <div style="color:var(--danger);font-weight:700;margin-bottom:6px"><i class="fas fa-thumbs-down"></i> Most Crowded Time</div>
+            <div style="font-size:22px;font-weight:800">${parseInt(worstH[0]).toString().padStart(2,'0')}:00</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:4px">~${worstH[1].toLocaleString()} visitors expected — avoid!</div>
+        </div>
+        <div style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:12px;padding:16px">
+            <div style="color:var(--info);font-weight:700;margin-bottom:6px"><i class="fas fa-clock"></i> Current Status</div>
+            <div style="font-size:22px;font-weight:800">${curPct}%</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:4px">${curV.toLocaleString()} visitors right now</div>
+        </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+//  BOOKING
+// ═══════════════════════════════════════════════════
+const ALL_SLOTS = ['05:00','05:30','06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30'];
+// Randomly mark some slots as "booked" per date key
+function getBookedSlots(dateKey) {
+    const stored = JSON.parse(localStorage.getItem('bookedSlots') || '{}');
+    if (!stored[dateKey]) {
+        // seed random booked slots for demo
+        const booked = ALL_SLOTS.filter(() => Math.random() < 0.25);
+        stored[dateKey] = booked;
+        localStorage.setItem('bookedSlots', JSON.stringify(stored));
+    }
+    return stored[dateKey];
+}
+
+function initBookingSection() {
+    // Pre-fill name from session
+    const nameEl = document.getElementById('bkName');
+    if (nameEl && session) nameEl.value = session.name || '';
+    renderSlots();
+    renderBkDayChart();
+    updateSlotDateLabel();
+}
+
+function updateSlotDateLabel() {
+    const d = document.getElementById('bkDate').value;
+    const label = document.getElementById('slotDateLabel');
+    if (d) { const dt = new Date(d + 'T00:00:00'); label.textContent = dt.toDateString(); }
+}
+
+function renderSlots() {
+    const grid = document.getElementById('slotGrid'); if (!grid) return;
+    const dateVal = document.getElementById('bkDate').value;
+    const now = new Date();
+    const isToday = dateVal === now.toISOString().split('T')[0];
+    const curH  = now.getHours() * 60 + now.getMinutes();
+    const booked = getBookedSlots(dateVal);
+    // Also check user's own bookings for this date
+    const mySlots = myBookings.filter(b => b.date === dateVal && b.status !== 'Cancelled').map(b => b.slot);
+    selectedSlot = null;
+    grid.innerHTML = '';
+    ALL_SLOTS.forEach(slot => {
+        const [h, m] = slot.split(':').map(Number);
+        const slotMin = h * 60 + m;
+        const isPast  = isToday && slotMin <= curH;
+        const isFull  = booked.includes(slot);
+        const isMine  = mySlots.includes(slot);
+        const btn = document.createElement('button');
+        btn.className = 'slot-btn' + (isFull || isPast ? ' booked' : ' available');
+        btn.disabled = isFull || isPast;
+        btn.textContent = isMine ? '✓ ' + slot : (isFull ? 'Full' : (isPast ? 'Past' : slot));
+        if (!isFull && !isPast) {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                selectedSlot = slot;
+            });
+        }
+        grid.appendChild(btn);
+    });
+}
+
+function renderBkDayChart() {
+    const ctx = document.getElementById('bookingDayChart'); if (!ctx) return;
+    if (bkDayChart) { bkDayChart.destroy(); bkDayChart = null; }
+    const dateVal = document.getElementById('bkDate').value;
+    const dt = new Date(dateVal + 'T00:00:00');
+    const dow = (dt.getDay() + 6) % 7;
+    const tKey = document.getElementById('bkTemple').value;
+    const d = TEMPLES[tKey] || TEMPLES.kedarnath;
+    const labels = [], data = [], colors = [];
+    for (let h = 5; h <= 20; h++) {
+        labels.push(h.toString().padStart(2,'0') + ':00');
+        const v = d.hourly[h];
+        data.push(v);
+        colors.push(v / d.maxCap > 0.8 ? 'rgba(239,68,68,.7)' : v / d.maxCap > 0.5 ? 'rgba(234,179,8,.7)' : 'rgba(34,197,94,.7)');
+    }
+    bkDayChart = new Chart(ctx.getContext('2d'), {
+        type:'bar', data:{ labels, datasets:[{ label:'Expected Crowd', data, backgroundColor:colors, borderRadius:5 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} },
+            scales:{ x:{ticks:{color:'#94a3b8',font:{size:10}}, grid:{color:'rgba(45,49,66,.3)'}},
+                     y:{ticks:{color:'#94a3b8',font:{size:10}}, grid:{color:'rgba(45,49,66,.3)'},beginAtZero:true} } }
+    });
+}
+document.addEventListener('DOMContentLoaded', () => {
+    const bkT = document.getElementById('bkTemple');
+    if (bkT) bkT.addEventListener('change', renderBkDayChart);
+});
+
+function confirmBooking() {
+    const temple   = document.getElementById('bkTemple').value;
+    const dateVal  = document.getElementById('bkDate').value;
+    const pilgrims = document.getElementById('bkPilgrims').value;
+    const name     = document.getElementById('bkName').value.trim();
+    const phone    = document.getElementById('bkPhone').value.trim();
+    const type     = document.getElementById('bkType').value;
+    if (!name)        { showToast('Please enter your full name', 'error'); return; }
+    if (phone.length !== 10) { showToast('Please enter a valid 10-digit mobile number', 'error'); return; }
+    if (!selectedSlot){ showToast('Please select a time slot', 'warning'); return; }
+    const bid = 'PV-' + Date.now().toString().slice(-6);
+    const booking = { id:bid, temple, templeName:TEMPLES[temple].name, date:dateVal, slot:selectedSlot, pilgrims:parseInt(pilgrims), name, phone, type, status:'Confirmed', bookedOn:new Date().toISOString() };
+    myBookings.unshift(booking);
+    localStorage.setItem('myBookings', JSON.stringify(myBookings));
+    // Show confirmation modal
+    document.getElementById('confBid').textContent = bid;
+    document.getElementById('confDetails').innerHTML = [
+        ['Temple', TEMPLES[temple].name],
+        ['Date',   new Date(dateVal + 'T00:00:00').toDateString()],
+        ['Time Slot', selectedSlot],
+        ['Darshan Type', type],
+        ['Pilgrims', pilgrims + ' person(s)'],
+        ['Name', name],
+        ['Mobile', phone],
+        ['Status', '<span class="badge badge-confirmed">Confirmed</span>']
+    ].map(([k,v]) => `<div class="conf-row"><span class="conf-label">${k}</span><span class="conf-val">${v}</span></div>`).join('');
+    document.getElementById('confirmModal').classList.remove('hidden');
+    showToast('Booking confirmed! ID: ' + bid, 'success');
+    selectedSlot = null;
+    renderSlots();
+}
+
+// ═══════════════════════════════════════════════════
+//  MY BOOKINGS
+// ═══════════════════════════════════════════════════
+function renderMyBookings() {
+    const list = document.getElementById('bookingsList');
+    const cnt  = document.getElementById('myBookingsCount');
+    const active = myBookings.filter(b => b.status !== 'Cancelled');
+    cnt.textContent = myBookings.length + ' booking(s)';
+    if (!myBookings.length) {
+        list.innerHTML = `<div class="empty-state"><i class="fas fa-ticket-alt"></i><p>No bookings yet.<br><a onclick="showSection('booking')">Book your darshan now →</a></p></div>`;
+        return;
+    }
+    list.innerHTML = myBookings.map((b, idx) => `
+        <div class="booking-card">
+            <div class="bk-info">
+                <div class="bk-temple">${b.templeName}</div>
+                <div class="bk-details">
+                    <span><i class="fas fa-calendar"></i> ${new Date(b.date + 'T00:00:00').toDateString()}</span>
+                    <span><i class="fas fa-clock"></i> ${b.slot}</span>
+                    <span><i class="fas fa-users"></i> ${b.pilgrims} person(s)</span>
+                    <span><i class="fas fa-tag"></i> ${b.type}</span>
+                </div>
+                <div class="bk-id">Booking ID: ${b.id}</div>
+            </div>
+            <div class="bk-actions">
+                <span class="badge badge-${b.status.toLowerCase()}">${b.status}</span>
+                ${b.status !== 'Cancelled' ? `<button class="btn-cancel" onclick="cancelBooking(${idx})"><i class="fas fa-times"></i> Cancel</button>` : ''}
+            </div>
+        </div>`).join('');
+}
+
+function cancelBooking(idx) {
+    if (!confirm('Cancel this booking?')) return;
+    myBookings[idx].status = 'Cancelled';
+    localStorage.setItem('myBookings', JSON.stringify(myBookings));
+    showToast('Booking cancelled', 'warning');
+    renderMyBookings();
+}
+
+// ═══════════════════════════════════════════════════
+//  TIPS
+// ═══════════════════════════════════════════════════
+function renderTips() {
+    const tips = [
+        { icon:'🌅', title:'Visit Early', text:'Arrive between 5–7 AM for the least crowded darshan. Evening aarti (6 PM) draws large crowds.' },
+        { icon:'🎒', title:'What to Carry', text:'Valid ID proof, booking confirmation, comfortable footwear (easily removable), water bottle.' },
+        { icon:'📵', title:'Mobile Policy', text:'Phones allowed outside but usually prohibited in sanctum sanctorum. Keep phones secured.' },
+        { icon:'💊', title:'Health & Safety', text:'Stay hydrated. Carry any essential medication. Inform temple staff if feeling unwell.' },
+        { icon:'🚘', title:'Parking & Transport', text:'Use designated parking zones. Public buses and shared autos available from main points.' },
+        { icon:'🍱', title:'Food & Water', text:'Prasad and filtered water available inside. Avoid outside food in temple premises.' },
+        { icon:'👴', title:'Special Access', text:'Senior citizens and differently-abled pilgrims get priority queue at designated gates.' }
+    ];
+    document.getElementById('tipsGrid').innerHTML = tips.map(t => `
+        <div class="tip-card">
+            <div class="tip-icon">${t.icon}</div>
+            <div class="tip-title">${t.title}</div>
+            <div class="tip-text">${t.text}</div>
+        </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    document.getElementById('toastMsg').textContent = msg;
+    toast.className = 'notif ' + type;
+    setTimeout(() => toast.classList.add('hidden'), 4000);
+}
+</script>
+</body>
+</html>

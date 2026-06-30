@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pravaah - Temple Crowd Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #5590f6; --secondary: #2d71f9;
+            --success: #22c55e; --danger: #ef4444; --info: #3b82f6;
+            --dark-bg: #0f0f1e; --card-bg: #1a1d29; --border: #2d3142;
+            --text-1: #ffffff; --text-2: #94a3b8;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1d29 100%);
+            color: var(--text-1); min-height: 100vh; overflow-x: hidden;
+        }
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(255,107,53,0.08) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(247,147,30,0.08) 0%, transparent 50%);
+            pointer-events: none; z-index: 0;
+        }
+        .container { position: relative; z-index: 1; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+        /* LANDING PAGE */
+        .landing-page { width: 100%; max-width: 1100px; animation: fadeIn 0.6s ease; }
+        .header-section { text-align: center; margin-bottom: 50px; }
+        .logo-container { display: flex; flex-direction: column; align-items: center; animation: slideDown 0.8s ease; }
+        .logo-image { width: 90px; height: 90px; border-radius: 50%; object-fit: cover; margin-bottom: 14px; border: 3px solid var(--primary); box-shadow: 0 0 30px rgba(255,107,53,0.4); }
+        .logo-title { font-size: 38px; font-weight: 800; background: linear-gradient(135deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .subtitle { font-size: 16px; color: var(--text-2); margin-top: 6px; }
+        .selection-container { margin-bottom: 50px; }
+        .selection-container h2 { text-align: center; font-size: 24px; margin-bottom: 36px; color: var(--text-1); }
+        .selection-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 720px; margin: 0 auto; }
+        .selection-card { background: var(--card-bg); border: 2px solid var(--border); border-radius: 20px; padding: 36px 26px; text-align: center; transition: all 0.4s ease; cursor: pointer; position: relative; overflow: hidden; }
+        .selection-card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 20px 50px rgba(255,107,53,0.2); }
+        .card-icon { font-size: 52px; margin-bottom: 18px; color: var(--primary); }
+        .selection-card h3 { font-size: 22px; margin-bottom: 12px; }
+        .selection-card p { color: var(--text-2); margin-bottom: 28px; line-height: 1.6; font-size: 14px; }
+        .btn-select { width: 100%; padding: 14px 26px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; border-radius: 12px; color: white; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease; }
+        .btn-select:hover { transform: scale(1.04); box-shadow: 0 10px 28px rgba(107, 97, 244, 0.35); }
+        .temples-info { text-align: center; padding: 36px 20px; background: rgba(26,29,41,0.6); border-radius: 18px; backdrop-filter: blur(10px); }
+        .temples-info h3 { font-size: 16px; margin-bottom: 18px; color: var(--text-2); }
+        .temple-logos { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+        .temple-tag { display: flex; align-items: center; gap: 7px; padding: 10px 18px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 22px; font-size: 13px; transition: all 0.3s ease; }
+        .temple-tag:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .temple-tag i { color: var(--primary); }
+
+        /* LOGIN PAGES */
+        .login-page { width: 100%; max-width: 480px; animation: fadeIn 0.5s ease; }
+        .login-page.hidden, .hidden { display: none !important; }
+        .back-button { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-1); padding: 11px 22px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 9px; margin-bottom: 26px; transition: all 0.3s ease; font-size: 14px; }
+        .back-button:hover { background: var(--dark-bg); border-color: var(--primary); }
+        .login-container { background: var(--card-bg); border: 2px solid var(--border); border-radius: 20px; padding: 38px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+        .login-header { text-align: center; margin-bottom: 34px; }
+        .login-icon { width: 74px; height: 74px; margin: 0 auto 18px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: white; box-shadow: 0 10px 28px rgba(255,107,53,0.35); }
+        .user-icon { background: linear-gradient(135deg, var(--info), #8b5cf6); box-shadow: 0 10px 28px rgba(59,130,246,0.35); }
+        .login-header h2 { font-size: 26px; margin-bottom: 8px; }
+        .login-header p { color: var(--text-2); font-size: 13px; }
+        .login-form { display: flex; flex-direction: column; gap: 18px; }
+        .form-group { display: flex; flex-direction: column; gap: 7px; }
+        .form-group label { font-size: 13px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 7px; }
+        .form-group input, .form-group select { width: 100%; padding: 13px 15px; background: var(--dark-bg); border: 2px solid var(--border); border-radius: 11px; color: var(--text-1); font-size: 14px; transition: all 0.3s ease; outline: none; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(255,107,53,0.1); }
+        .password-input { position: relative; }
+        .toggle-password { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-2); cursor: pointer; font-size: 15px; transition: color 0.3s ease; }
+        .toggle-password:hover { color: var(--primary); }
+        .form-options { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
+        .checkbox-container { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
+        .checkbox-container input { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
+        .forgot-password { color: var(--primary); text-decoration: none; font-size: 12px; }
+        .forgot-password:hover { color: var(--secondary); }
+        .btn-login { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border: none; border-radius: 11px; color: white; font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 9px; transition: all 0.3s ease; margin-top: 8px; }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,107,53,0.35); }
+        .user-btn { background: linear-gradient(135deg, var(--info), #8b5cf6); }
+        .user-btn:hover { box-shadow: 0 10px 28px rgba(59,130,246,0.35); }
+        .login-info { display: flex; gap: 9px; padding: 11px; background: rgba(59,130,246,0.08); border-radius: 8px; font-size: 12px; color: var(--text-2); line-height: 1.5; margin-top: 8px; }
+        .login-info i { color: var(--info); margin-top: 2px; flex-shrink: 0; }
+        .demo-credentials { margin-top: 26px; padding: 18px; background: rgba(255,107,53,0.05); border: 1px solid var(--border); border-radius: 11px; }
+        .demo-credentials h4 { font-size: 13px; color: var(--text-2); margin-bottom: 13px; display: flex; align-items: center; gap: 7px; }
+        .credentials-grid { display: flex; flex-direction: column; gap: 8px; }
+        .credential-item { font-size: 12px; color: var(--text-2); display: flex; justify-content: space-between; padding: 7px 10px; background: var(--dark-bg); border-radius: 6px; }
+        .credential-item strong { color: var(--primary); }
+        .credential-item span { font-family: 'Courier New', monospace; font-size: 11px; }
+        .features-list { margin-top: 26px; padding: 18px; background: rgba(59,130,246,0.05); border: 1px solid var(--border); border-radius: 11px; }
+        .features-list h4 { font-size: 13px; color: var(--text-2); margin-bottom: 13px; }
+        .features-list ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+        .features-list li { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 9px; }
+        .features-list li i { color: var(--success); font-size: 13px; }
+
+        /* NOTIFICATION */
+        .notification { position: fixed; top: 20px; right: 20px; padding: 14px 22px; border-radius: 11px; box-shadow: 0 10px 28px rgba(0,0,0,0.3); z-index: 1000; animation: slideInRight 0.3s ease; }
+        .notification.success { background: var(--success); color: white; }
+        .notification.error { background: var(--danger); color: white; }
+        .notification.warning { background: #eab308; color: #1a1d29; }
+        .notification-content { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 14px; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-26px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideInRight { from { opacity: 0; transform: translateX(80px); } to { opacity: 1; transform: translateX(0); } }
+        @media (max-width: 600px) {
+            .selection-cards { grid-template-columns: 1fr; }
+            .login-container { padding: 26px 18px; }
+            .notification { right: 10px; left: 10px; top: 10px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- LANDING PAGE -->
+    <div class="landing-page" id="landingPage">
+        <div class="header-section">
+            <div class="logo-container">
+                <img src="pravaah.png" alt="Pravaah logo" class="logo-image" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='block'">
+                <div id="logoFallback" style="display:none;font-size:60px;color:var(--primary);margin-bottom:14px"><i class="fas fa-om"></i></div>
+                <div class="logo-title">PRAVAAH</div>
+                <p class="subtitle">Smart Solutions for Sacred Spaces</p>
+            </div>
+        </div>
+        <div class="selection-container">
+            <h2>Select Your Portal</h2>
+            <div class="selection-cards">
+                <div class="selection-card">
+                    <div class="card-icon"><i class="fas fa-user-shield"></i></div>
+                    <h3>Admin Portal</h3>
+                    <p>Manage temple operations, monitor crowds, and control resources</p>
+                    <button class="btn-select" data-role="admin"><span>Continue as Admin</span><i class="fas fa-arrow-right"></i></button>
+                </div>
+                <div class="selection-card">
+                    <div class="card-icon"><i class="fas fa-praying-hands"></i></div>
+                    <h3>Pilgrim Portal</h3>
+                    <p>Check queue status, book darshan slots, and navigate temple premises</p>
+                    <button class="btn-select" data-role="user"><span>Continue as Pilgrim</span><i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+        <div class="temples-info">
+            <h3>Our Temple Network</h3>
+            <div class="temple-logos">
+                <div class="temple-tag"><i class="fas fa-place-of-worship"></i><span>Somnath</span></div>
+                <div class="temple-tag"><i class="fas fa-place-of-worship"></i><span>Kedarnath</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN LOGIN PAGE -->
+    <div class="login-page hidden" id="adminLoginPage">
+        <button class="back-button" id="backFromAdmin"><i class="fas fa-arrow-left"></i> Back</button>
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-icon"><i class="fas fa-user-shield"></i></div>
+                <h2>Admin Login</h2>
+                <p>Access temple management dashboard</p>
+            </div>
+            <form class="login-form" id="adminLoginForm">
+                <div class="form-group">
+                    <label><i class="fas fa-place-of-worship"></i> Select Temple</label>
+                    <select id="adminTempleId" required>
+                        <option value="">Choose temple...</option>
+                        <option value="somnath">Somnath Temple</option>
+                        <option value="kedarnath">Kedarnath Temple</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Admin ID</label>
+                    <input type="text" id="adminUsername" placeholder="Enter your admin ID" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <div class="password-input">
+                        <input type="password" id="adminPassword" placeholder="Enter your password" required>
+                        <button type="button" class="toggle-password" data-target="adminPassword"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                <div class="form-options">
+                    <label class="checkbox-container"><input type="checkbox" id="rememberMe"><span></span> Remember me</label>
+                    <a href="#" class="forgot-password">Forgot password?</a>
+                </div>
+                <button type="submit" class="btn-login"><span>Login to Dashboard</span><i class="fas fa-sign-in-alt"></i></button>
+                <div class="login-info"><i class="fas fa-info-circle"></i><p>Use your temple-specific admin credentials to access the management dashboard</p></div>
+            </form>
+            <div class="demo-credentials">
+                <h4><i class="fas fa-key"></i> Demo Credentials</h4>
+                <div class="credentials-grid">
+                    <div class="credential-item"><strong>Somnath:</strong><span>admin_somnath / somnath123</span></div>
+                    <div class="credential-item"><strong>Kedarnath:</strong><span>admin_kedarnath / kedarnath123</span></div>
+                    <div class="credential-item"><strong>Golden:</strong><span>admin_golden / golden123</span></div>
+                    <div class="credential-item"><strong>Ram:</strong><span>admin_ram / ram123</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER / PILGRIM LOGIN PAGE -->
+    <div class="login-page hidden" id="userLoginPage">
+        <button class="back-button" id="backFromUser"><i class="fas fa-arrow-left"></i> Back</button>
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-icon user-icon"><i class="fas fa-praying-hands"></i></div>
+                <h2>Pilgrim Login</h2>
+                <p>Access your darshan booking and temple information</p>
+            </div>
+            <form class="login-form" id="userLoginForm">
+                <div class="form-group">
+                    <label><i class="fas fa-id-card"></i> User ID</label>
+                    <input type="text" id="userLoginId" placeholder="Enter your User ID (e.g. pilgrim001)" required>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> Password</label>
+                    <div class="password-input">
+                        <input type="password" id="userLoginPassword" placeholder="Enter your password" required>
+                        <button type="button" class="toggle-password" data-target="userLoginPassword"><i class="fas fa-eye"></i></button>
+                    </div>
+                </div>
+                <div class="form-options">
+                    <label class="checkbox-container"><input type="checkbox" id="rememberPilgrim"><span></span> Remember me</label>
+                    <a href="#" class="forgot-password">Forgot password?</a>
+                </div>
+                <button type="submit" class="btn-login user-btn"><span>Continue to Portal</span><i class="fas fa-arrow-right"></i></button>
+                <div class="login-info"><i class="fas fa-info-circle"></i><p>New users can register with any User ID and password. Your account will be created automatically.</p></div>
+            </form>
+            <div class="demo-credentials">
+                <h4><i class="fas fa-key"></i> Demo Credentials</h4>
+                <div class="credentials-grid">
+                    <div class="credential-item"><strong>User 1:</strong><span>pilgrim001 / pilgrim123</span></div>
+                    <div class="credential-item"><strong>User 2:</strong><span>user_ram / ram@2025</span></div>
+                    <div class="credential-item"><strong>New User:</strong><span>Any ID + Any Password</span></div>
+                </div>
+            </div>
+            <div class="features-list">
+                <h4>What you can do:</h4>
+                <ul>
+                    <li><i class="fas fa-check"></i> Book virtual darshan slots</li>
+                    <li><i class="fas fa-check"></i> Check real-time crowd status</li>
+                    <li><i class="fas fa-check"></i> View AI crowd predictions</li>
+                    <li><i class="fas fa-check"></i> Navigate temple premises</li>
+                    <li><i class="fas fa-check"></i> Manage your bookings</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="notification hidden" id="notification">
+    <div class="notification-content"><i class="fas fa-check-circle" id="notifIcon"></i><span id="notificationText"></span></div>
+</div>
+
+<script>
+const adminCredentials = {
+    somnath:  { username: 'admin_somnath',   password: 'somnath123',   templeName: 'Somnath Temple' },
+    kedarnath:{ username: 'admin_kedarnath', password: 'kedarnath123', templeName: 'Kedarnath Temple' }
+};
+
+// Pre-seeded demo pilgrim accounts
+const pilgrimAccounts = JSON.parse(localStorage.getItem('pilgrimAccounts') || JSON.stringify({
+    'pilgrim001': { password: 'pilgrim123', name: 'Ramesh Kumar', phone: '9876543210' },
+    'user_ram':   { password: 'ram@2025',   name: 'Sita Devi',    phone: '9876500001' }
+}));
+
+const landingPage   = document.getElementById('landingPage');
+const adminLoginPage= document.getElementById('adminLoginPage');
+const userLoginPage = document.getElementById('userLoginPage');
+const notification  = document.getElementById('notification');
+
+document.querySelectorAll('.btn-select').forEach(btn => {
+    btn.addEventListener('click', () => navigateToLogin(btn.dataset.role));
+});
+document.getElementById('backFromAdmin').addEventListener('click', navigateToLanding);
+document.getElementById('backFromUser').addEventListener('click', navigateToLanding);
+document.getElementById('adminLoginForm').addEventListener('submit', handleAdminLogin);
+document.getElementById('userLoginForm').addEventListener('submit', handleUserLogin);
+
+document.querySelectorAll('.toggle-password').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const inp = document.getElementById(this.dataset.target);
+        const icon = this.querySelector('i');
+        if (inp.type === 'password') { inp.type = 'text'; icon.classList.replace('fa-eye','fa-eye-slash'); }
+        else { inp.type = 'password'; icon.classList.replace('fa-eye-slash','fa-eye'); }
+    });
+});
+
+function navigateToLogin(role) {
+    landingPage.classList.add('hidden');
+    if (role === 'admin') adminLoginPage.classList.remove('hidden');
+    else userLoginPage.classList.remove('hidden');
+}
+function navigateToLanding() {
+    adminLoginPage.classList.add('hidden');
+    userLoginPage.classList.add('hidden');
+    landingPage.classList.remove('hidden');
+    document.getElementById('adminLoginForm').reset();
+    document.getElementById('userLoginForm').reset();
+}
+
+function handleAdminLogin(e) {
+    e.preventDefault();
+    const templeId = document.getElementById('adminTempleId').value;
+    const username = document.getElementById('adminUsername').value.trim();
+    const password = document.getElementById('adminPassword').value;
+    const rememberMe = document.getElementById('rememberMe').checked;
+    if (!templeId) { showNotification('Please select a temple', 'error'); return; }
+    const temple = adminCredentials[templeId];
+    if (temple && temple.username === username && temple.password === password) {
+        const loginData = { role: 'admin', templeId, templeName: temple.templeName, username, loginTime: new Date().toISOString() };
+        sessionStorage.setItem('userSession', JSON.stringify(loginData));
+        if (rememberMe) localStorage.setItem('rememberedAdmin', JSON.stringify({ templeId, username }));
+        showNotification('Welcome to ' + temple.templeName + ' Dashboard!', 'success');
+        setTimeout(() => window.location.href = 'admin_dashboard.html', 1500);
+    } else {
+        showNotification('Invalid credentials. Please try again.', 'error');
+        document.getElementById('adminPassword').value = '';
+    }
+}
+
+function handleUserLogin(e) {
+    e.preventDefault();
+    const userId   = document.getElementById('userLoginId').value.trim();
+    const password = document.getElementById('userLoginPassword').value;
+    const remember = document.getElementById('rememberPilgrim').checked;
+    if (!userId || !password) { showNotification('Please enter User ID and Password', 'error'); return; }
+    // Auto-register if new user
+    if (!pilgrimAccounts[userId]) {
+        pilgrimAccounts[userId] = { password, name: userId, phone: '' };
+        localStorage.setItem('pilgrimAccounts', JSON.stringify(pilgrimAccounts));
+    }
+    if (pilgrimAccounts[userId].password !== password) {
+        showNotification('Incorrect password. Please try again.', 'error'); return;
+    }
+    const loginData = { role: 'user', userId, name: pilgrimAccounts[userId].name || userId, phone: pilgrimAccounts[userId].phone || '', loginTime: new Date().toISOString() };
+    sessionStorage.setItem('userSession', JSON.stringify(loginData));
+    if (remember) localStorage.setItem('rememberedPilgrim', JSON.stringify({ userId }));
+    showNotification('Welcome, ' + (loginData.name) + '!', 'success');
+    setTimeout(() => window.location.href = 'user_dashboard.html', 1500);
+}
+
+function showNotification(message, type) {
+    const notifIcon = document.getElementById('notifIcon');
+    document.getElementById('notificationText').textContent = message;
+    notification.className = 'notification ' + type;
+    notifIcon.className = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle';
+    notification.classList.remove('hidden');
+    setTimeout(() => notification.classList.add('hidden'), 4000);
+}
+
+// Auto-fill remembered admin
+const remAdmin = localStorage.getItem('rememberedAdmin');
+if (remAdmin) {
+    const d = JSON.parse(remAdmin);
+    document.getElementById('adminTempleId').value = d.templeId;
+    document.getElementById('adminUsername').value = d.username;
+    document.getElementById('rememberMe').checked = true;
+}
+const remPilgrim = localStorage.getItem('rememberedPilgrim');
+if (remPilgrim) {
+    document.getElementById('userLoginId').value = JSON.parse(remPilgrim).userId;
+    document.getElementById('rememberPilgrim').checked = true;
+}
+</script>
+</body>
+</html>

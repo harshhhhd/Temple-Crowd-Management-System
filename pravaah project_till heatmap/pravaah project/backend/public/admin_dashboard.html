@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pravaah - Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary:#5590f6; --secondary:#2d71f9; --success:#22c55e; --warning:#eab308;
+            --danger:#ef4444; --info:#3b82f6; --dark-bg:#1a1d29; --card-bg:#242837;
+            --sidebar-bg:#1e2130; --text-1:#ffffff; --text-2:#94a3b8; --border:#2d3142;
+        }
+        body { font-family:'Segoe UI',Tahoma,sans-serif; background:var(--dark-bg); color:var(--text-1); overflow-x:hidden; }
+        .dashboard-container { display:flex; min-height:100vh; }
+        .sidebar { width:260px; background:var(--sidebar-bg); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; height:100vh; overflow-y:auto; transition:transform .3s; z-index:1000; }
+        .sidebar-header { padding:22px 18px; display:flex; align-items:center; gap:12px; border-bottom:1px solid var(--border); }
+        .sidebar-header i { font-size:28px; color:var(--primary); }
+        .header-text h2 { font-size:17px; font-weight:700; }
+        .temple-code { font-size:10px; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; }
+        .sidebar-nav { flex:1; padding:16px 0; }
+        .nav-item { display:flex; align-items:center; gap:12px; padding:13px 18px; color:var(--text-2); text-decoration:none; transition:all .25s; border-left:3px solid transparent; font-size:13.5px; cursor:pointer; }
+        .nav-item:hover { background:rgba(255,107,53,.1); color:var(--text-1); }
+        .nav-item.active { background:rgba(255,107,53,.15); color:var(--primary); border-left-color:var(--primary); }
+        .nav-item i { font-size:16px; width:20px; }
+        .sidebar-footer { padding:18px; border-top:1px solid var(--border); }
+        .admin-info { display:flex; gap:10px; align-items:center; margin-bottom:14px; padding:10px; background:var(--card-bg); border-radius:10px; }
+        .admin-avatar { font-size:32px; color:var(--primary); }
+        .admin-name { font-size:13px; font-weight:600; }
+        .admin-role { font-size:11px; color:var(--text-2); }
+        .btn-logout { width:100%; padding:10px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:var(--danger); border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-weight:600; transition:all .25s; }
+        .btn-logout:hover { background:rgba(239,68,68,.2); }
+        .main-content { flex:1; margin-left:260px; display:flex; flex-direction:column; }
+        .top-header { background:var(--card-bg); padding:18px 28px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+        .header-left { display:flex; align-items:center; gap:16px; }
+        .menu-toggle { display:none; background:none; border:none; color:var(--text-1); font-size:22px; cursor:pointer; }
+        .breadcrumb h1 { font-size:20px; font-weight:700; }
+        .temple-location { font-size:12px; color:var(--text-2); }
+        .header-right { display:flex; align-items:center; gap:20px; }
+        .datetime-widget .date { font-size:11px; color:var(--text-2); }
+        .datetime-widget .time { font-size:16px; font-weight:700; color:var(--primary); }
+        .weather-widget { display:flex; align-items:center; gap:6px; font-size:14px; }
+        .weather-widget i { color:var(--warning); }
+        .notification-icon { position:relative; cursor:pointer; font-size:20px; }
+        .notification-badge { position:absolute; top:-6px; right:-8px; background:var(--danger); color:#fff; font-size:10px; border-radius:50%; width:18px; height:18px; display:flex; align-items:center; justify-content:center; }
+        .content-section { display:none; padding:24px 28px; }
+        .content-section.active { display:block; }
+        .card { background:var(--card-bg); border-radius:14px; border:1px solid var(--border); overflow:hidden; margin-bottom:20px; }
+        .card-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .card-header h3 { font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+        .card-header h3 i { color:var(--primary); }
+        .card-subtitle { font-size:12px; color:var(--text-2); }
+        .card-body { padding:20px 22px; }
+        .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px; }
+        .stat-card { background:var(--card-bg); border:1px solid var(--border); border-radius:14px; padding:20px; display:flex; align-items:center; gap:16px; transition:transform .2s,box-shadow .2s; }
+        .stat-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.3); }
+        .stat-icon { width:52px; height:52px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+        .stat-icon.blue   { background:rgba(59,130,246,.15); color:var(--info); }
+        .stat-icon.orange { background:rgba(247,147,30,.15); color:var(--secondary); }
+        .stat-icon.green  { background:rgba(34,197,94,.15);  color:var(--success); }
+        .stat-icon.red    { background:rgba(239,68,68,.15);  color:var(--danger); }
+        .stat-info h3 { font-size:26px; font-weight:800; line-height:1; margin-bottom:4px; }
+        .stat-info p { font-size:12px; color:var(--text-2); margin-bottom:4px; }
+        .stat-change { font-size:11px; font-weight:600; padding:2px 8px; border-radius:20px; }
+        .stat-change.positive { background:rgba(34,197,94,.15);   color:var(--success); }
+        .stat-change.negative { background:rgba(239,68,68,.15);   color:var(--danger); }
+        .stat-change.neutral  { background:rgba(148,163,184,.15); color:var(--text-2); }
+        .stat-meter { width:100%; height:4px; background:var(--border); border-radius:2px; margin-top:6px; }
+        .stat-meter-fill { height:100%; border-radius:2px; transition:width 1s ease; }
+        .dashboard-grid { display:grid; grid-template-columns:1fr 380px; gap:20px; margin-bottom:20px; }
+        #predictionChart { width:100% !important; height:260px !important; }
+        .temple-selector { display:flex; gap:10px; }
+        .temple-btn { padding:8px 20px; border-radius:8px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-2); cursor:pointer; font-size:13px; transition:all .2s; }
+        .temple-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+        .prediction-header-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(255,107,53,.15); color:var(--primary); padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; }
+        .prediction-header-badge::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--primary); animation:pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.3)} }
+        .pred-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        .pred-chart-wrap { position:relative; height:240px; }
+        #prediction24hChart { width:100% !important; height:240px !important; }
+        .pred-7day-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:8px; margin-top:16px; }
+        .day-card { background:var(--dark-bg); border-radius:10px; padding:12px 8px; text-align:center; border:1px solid var(--border); transition:all .2s; }
+        .day-card:hover { border-color:var(--primary); transform:translateY(-2px); }
+        .day-card.today { border-color:var(--primary); background:rgba(255,107,53,.1); }
+        .day-card .day-name  { font-size:10px; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+        .day-card .day-crowd { font-size:20px; font-weight:800; color:var(--text-1); }
+        .day-card .day-level { font-size:10px; margin-top:4px; padding:2px 6px; border-radius:10px; }
+        .day-card .day-level.low    { background:rgba(34,197,94,.15); color:var(--success); }
+        .day-card .day-level.medium { background:rgba(234,179,8,.15); color:var(--warning); }
+        .day-card .day-level.high   { background:rgba(239,68,68,.15); color:var(--danger); }
+        .insight-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:14px 0; }
+        .insight-item { background:var(--dark-bg); border-radius:10px; padding:12px 14px; border:1px solid var(--border); }
+        .insight-label { font-size:10px; color:var(--text-2); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+        .insight-value { font-size:18px; font-weight:700; }
+        .insight-sub { font-size:10px; color:var(--text-2); margin-top:2px; }
+        .zone-bars { display:grid; gap:10px; }
+        .zone-row { display:flex; align-items:center; gap:12px; }
+        .zone-name-label { font-size:12px; color:var(--text-2); width:80px; flex-shrink:0; }
+        .zone-bar-track { flex:1; height:10px; background:var(--border); border-radius:5px; overflow:hidden; }
+        .zone-bar-fill { height:100%; border-radius:5px; transition:width 1s ease; }
+        .zone-count-label { font-size:12px; font-weight:700; width:40px; text-align:right; }
+        .live-badge { display:inline-flex; align-items:center; gap:5px; background:rgba(239,68,68,.15); color:var(--danger); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+        .live-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--danger); animation:pulse 1s infinite; }
+        .alert-list { display:flex; flex-direction:column; gap:8px; max-height:280px; overflow-y:auto; }
+        .alert-item { padding:10px 14px; border-radius:8px; border-left:3px solid; font-size:13px; }
+        .alert-item.critical { background:rgba(239,68,68,.1);  border-color:var(--danger); }
+        .alert-item.warning  { background:rgba(234,179,8,.1);  border-color:var(--warning); }
+        .alert-item.info     { background:rgba(59,130,246,.1); border-color:var(--info); }
+        .alert-header { display:flex; justify-content:space-between; margin-bottom:3px; }
+        .alert-title { font-weight:700; font-size:12px; }
+        .alert-time  { font-size:10px; color:var(--text-2); }
+        .alert-message { font-size:12px; color:var(--text-2); }
+        .btn-primary { padding:8px 18px; background:var(--primary); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:13px; font-weight:600; transition:all .2s; display:flex; align-items:center; gap:6px; }
+        .btn-primary:hover { background:#e85a25; }
+        .btn-control { padding:7px 14px; background:var(--dark-bg); color:var(--text-2); border:1px solid var(--border); border-radius:8px; cursor:pointer; font-size:12px; transition:all .2s; }
+        .btn-control:hover { border-color:var(--primary); color:var(--text-1); }
+        .btn-clear { padding:5px 12px; background:transparent; color:var(--danger); border:1px solid rgba(239,68,68,.3); border-radius:6px; cursor:pointer; font-size:12px; }
+        .btn-danger { padding:8px 18px; background:rgba(239,68,68,.15); color:var(--danger); border:1px solid rgba(239,68,68,.3); border-radius:8px; cursor:pointer; font-weight:700; }
+        .detector-status { display:flex; align-items:center; gap:10px; font-size:13px; }
+        .detector-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+        .detector-dot.active { background:var(--success); animation:pulse 1.5s infinite; }
+        .heatmap-container { position:relative; border-radius:10px; overflow:hidden; margin-bottom:16px; }
+        #heatmapCanvas { display:block; width:100%; height:400px; background:#0d1117; border-radius:10px; }
+        .heatmap-legend { display:flex; gap:20px; margin-top:12px; }
+        .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; }
+        .legend-color { width:14px; height:14px; border-radius:3px; }
+        .zone-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+        .zone-card { background:var(--dark-bg); border-radius:10px; padding:14px; border:1px solid var(--border); }
+        .zone-card.low    { border-color:rgba(34,197,94,.3); }
+        .zone-card.medium { border-color:rgba(234,179,8,.3); }
+        .zone-card.high   { border-color:rgba(239,68,68,.3); }
+        .zone-name { font-size:11px; color:var(--text-2); margin-bottom:6px; }
+        .zone-occupancy { font-size:28px; font-weight:800; }
+        .zone-card.low    .zone-occupancy { color:var(--success); }
+        .zone-card.medium .zone-occupancy { color:var(--warning); }
+        .zone-card.high   .zone-occupancy { color:var(--danger); }
+        .zone-count { font-size:12px; color:var(--text-2); margin-top:4px; }
+        .queue-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+        .queue-item { background:var(--dark-bg); border-radius:10px; padding:16px; border:1px solid var(--border); }
+        .queue-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+        .queue-name { font-size:14px; font-weight:600; }
+        .queue-status { font-size:11px; padding:3px 10px; border-radius:20px; background:rgba(34,197,94,.15); color:var(--success); }
+        .queue-meta { display:flex; justify-content:space-between; font-size:12px; color:var(--text-2); margin-bottom:8px; }
+        .progress-bar { height:8px; background:var(--border); border-radius:4px; overflow:hidden; }
+        .progress-fill { height:100%; background:var(--primary); border-radius:4px; transition:width 1s; }
+        .traffic-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        .traffic-section h4 { font-size:14px; font-weight:700; margin-bottom:12px; }
+        .parking-lot { background:var(--dark-bg); border-radius:10px; padding:14px; border:1px solid var(--border); margin-bottom:10px; }
+        .parking-header { display:flex; justify-content:space-between; font-size:13px; margin-bottom:8px; }
+        .road-item { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:13px; }
+        .toggle-switch { width:44px; height:24px; border-radius:12px; background:var(--border); position:relative; cursor:pointer; transition:background .3s; }
+        .toggle-switch.active { background:var(--success); }
+        .toggle-slider { width:18px; height:18px; border-radius:50%; background:#fff; position:absolute; top:3px; left:3px; transition:left .3s; }
+        .toggle-switch.active .toggle-slider { left:23px; }
+        .analytics-grid { display:grid; grid-template-columns:1fr 340px; gap:20px; }
+        .festival-item { padding:12px 0; border-bottom:1px solid var(--border); }
+        .festival-date { font-size:11px; color:var(--primary); margin-bottom:2px; }
+        .festival-name { font-size:14px; font-weight:600; margin-bottom:2px; }
+        .festival-crowd { font-size:12px; color:var(--text-2); }
+        .emergency-contacts { display:flex; gap:20px; margin-bottom:16px; flex-wrap:wrap; }
+        .contact-item { display:flex; align-items:center; gap:8px; background:var(--dark-bg); border-radius:8px; padding:10px 14px; font-size:13px; border:1px solid var(--border); }
+        .contact-item i { color:var(--primary); }
+        .emergency-item { background:var(--dark-bg); border-radius:10px; padding:14px; border:1px solid rgba(239,68,68,.2); margin-bottom:10px; }
+        .emergency-header { display:flex; justify-content:space-between; margin-bottom:6px; }
+        .emergency-type { font-weight:700; font-size:13px; color:var(--danger); }
+        .emergency-time { font-size:11px; color:var(--text-2); }
+        .emergency-location { font-size:12px; color:var(--text-2); margin-bottom:10px; }
+        .emergency-actions { display:flex; gap:8px; }
+        .bookings-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:20px; }
+        .booking-stat { background:var(--dark-bg); border-radius:10px; padding:14px; border:1px solid var(--border); text-align:center; }
+        .booking-stat .num { font-size:24px; font-weight:800; color:var(--primary); }
+        .booking-stat .label { font-size:11px; color:var(--text-2); margin-top:4px; }
+        .booking-filter select { background:var(--dark-bg); border:1px solid var(--border); color:var(--text-1); padding:7px 12px; border-radius:8px; font-size:13px; }
+        .booking-table-wrap { overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; font-size:13px; }
+        th { text-align:left; padding:10px 14px; font-size:11px; color:var(--text-2); border-bottom:1px solid var(--border); text-transform:uppercase; letter-spacing:.5px; }
+        td { padding:12px 14px; border-bottom:1px solid rgba(45,49,66,.5); }
+        .badge { padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; }
+        .badge.confirmed { background:rgba(34,197,94,.15); color:var(--success); }
+        .badge.pending   { background:rgba(234,179,8,.15); color:var(--warning); }
+        .badge.cancelled { background:rgba(239,68,68,.15); color:var(--danger); }
+        .resource-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:14px; }
+        .resource-item { background:var(--dark-bg); border-radius:10px; padding:14px; border:1px solid var(--border); }
+        .resource-name { font-size:13px; font-weight:600; margin-bottom:4px; }
+        .resource-location { font-size:11px; color:var(--text-2); }
+        .resource-status { font-size:11px; padding:3px 8px; border-radius:20px; display:inline-block; margin-top:6px; }
+        .resource-status.active { background:rgba(34,197,94,.15); color:var(--success); }
+        .deployment-suggestions { background:rgba(255,107,53,.07); border:1px solid rgba(255,107,53,.2); border-radius:10px; padding:14px 18px; margin-bottom:14px; }
+        .suggestion-title { font-size:13px; font-weight:700; color:var(--primary); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+        .suggestion-list { list-style:none; }
+        .suggestion-list li { font-size:13px; color:var(--text-2); padding:5px 0; display:flex; gap:8px; }
+        .suggestion-list li::before { content:'→'; color:var(--primary); }
+        .modal { position:fixed; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; z-index:9999; }
+        .modal.hidden { display:none; }
+        .modal-content { background:var(--card-bg); border-radius:16px; padding:0; width:480px; border:1px solid var(--border); }
+        .modal-header { padding:18px 22px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+        .modal-header h3 { font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; }
+        .modal-header h3 i { color:var(--primary); }
+        .modal-close { background:none; border:none; color:var(--text-2); font-size:18px; cursor:pointer; }
+        .modal-body { padding:20px 22px; }
+        .modal-footer { padding:14px 22px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:10px; }
+        ::-webkit-scrollbar { width:5px; height:5px; }
+        ::-webkit-scrollbar-track { background:var(--dark-bg); }
+        ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+        ::-webkit-scrollbar-thumb:hover { background:var(--primary); }
+        @media (max-width:1100px) { .stats-grid{grid-template-columns:1fr 1fr} .dashboard-grid{grid-template-columns:1fr} .pred-grid{grid-template-columns:1fr} .pred-7day-grid{grid-template-columns:repeat(4,1fr)} }
+        @media (max-width:768px) { .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0)} .main-content{margin-left:0} .menu-toggle{display:block} .stats-grid{grid-template-columns:1fr 1fr} }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-om"></i>
+            <div class="header-text">
+                <h2 id="templeNameSidebar">Kedarnath Temple</h2>
+                <span class="temple-code" id="templeCode">KDN-002</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="nav-item active" data-section="overview"><i class="fas fa-chart-line"></i><span>Overview</span></a>
+            <a class="nav-item" data-section="ai-predictions"><i class="fas fa-brain"></i><span>AI Predictions</span></a>
+            <a class="nav-item" href="ai_heatmap.html"><i class="fas fa-map-marked-alt"></i><span>Live Heatmap</span></a>
+            <a class="nav-item" data-section="queue"><i class="fas fa-users"></i><span>Queue Management</span></a>
+            <a class="nav-item" data-section="resources"><i class="fas fa-user-shield"></i><span>Resources</span></a>
+            <a class="nav-item" data-section="traffic"><i class="fas fa-car"></i><span>Traffic Control</span></a>
+            <a class="nav-item" data-section="emergency"><i class="fas fa-exclamation-triangle"></i><span>Emergency</span></a>
+            <a class="nav-item" data-section="analytics"><i class="fas fa-chart-bar"></i><span>Analytics</span></a>
+            <a class="nav-item" data-section="bookings"><i class="fas fa-ticket-alt"></i><span>Bookings</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="admin-info">
+                <div class="admin-avatar"><i class="fas fa-user-circle"></i></div>
+                <div><div class="admin-name" id="adminName">Admin User</div><div class="admin-role">Administrator</div></div>
+            </div>
+            <button class="btn-logout" id="logoutBtn"><i class="fas fa-sign-out-alt"></i><span>Logout</span></button>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-left">
+                <button class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></button>
+                <div class="breadcrumb">
+                    <h1 id="pageTitle">Dashboard Overview</h1>
+                    <span class="temple-location" id="templeLocation">Rudraprayag, Uttarakhand</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="temple-selector">
+                    <button class="temple-btn" data-temple="somnath" onclick="switchTemple('somnath',this)">🏛 Somnath</button>
+                    <button class="temple-btn active" data-temple="kedarnath" onclick="switchTemple('kedarnath',this)">⛰ Kedarnath</button>
+                </div>
+                <div class="datetime-widget">
+                    <div class="date" id="currentDate"></div>
+                    <div class="time" id="currentTime"></div>
+                </div>
+                <div class="weather-widget"><i class="fas fa-cloud-sun"></i><span id="weatherInfo">28°C</span></div>
+                <div class="notification-icon" id="notificationIcon">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge">3</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- OVERVIEW -->
+        <section id="overview" class="content-section active">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-icon blue"><i class="fas fa-users"></i></div><div class="stat-info"><h3 id="currentVisitors">1,067</h3><p>Current Visitors</p><span class="stat-change positive" id="visitorChange">+12.4%</span><div class="stat-meter"><div class="stat-meter-fill" id="visitorMeter" style="width:56%;background:var(--info)"></div></div></div></div>
+                <div class="stat-card"><div class="stat-icon orange"><i class="fas fa-clock"></i></div><div class="stat-info"><h3 id="avgWaitTime">3.1 min</h3><p>Avg Wait Time</p><span class="stat-change neutral" id="waitChange">Normal</span><div class="stat-meter"><div class="stat-meter-fill" id="waitMeter" style="width:31%;background:var(--secondary)"></div></div></div></div>
+                <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check-circle"></i></div><div class="stat-info"><h3 id="capacity">56%</h3><p>Temple Capacity</p><span class="stat-change neutral" id="capacityStatus">Normal</span><div class="stat-meter"><div class="stat-meter-fill" id="capacityMeter" style="width:56%;background:var(--success)"></div></div></div></div>
+                <div class="stat-card"><div class="stat-icon red"><i class="fas fa-exclamation-circle"></i></div><div class="stat-info"><h3 id="alerts">1</h3><p>Active Alerts</p><span class="stat-change negative" id="alertStatus">Requires Attention</span><div class="stat-meter"><div class="stat-meter-fill" id="alertMeter" style="width:20%;background:var(--danger)"></div></div></div></div>
+            </div>
+
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <h3><i class="fas fa-radar"></i> Live Crowd Detector — Zone Breakdown</h3>
+                    <div style="display:flex;align-items:center;gap:12px">
+                        <div class="detector-status"><div class="detector-dot active" id="detectorDot"></div><span id="detectorStatusText" style="font-size:12px;color:var(--text-2)">YOLOv8 Active · crowd1.mp4</span></div>
+                        <span class="live-badge">LIVE</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="insight-strip">
+                        <div class="insight-item"><div class="insight-label">Entrance Zone</div><div class="insight-value" id="zoneEntrance">262</div><div class="insight-sub">people detected</div></div>
+                        <div class="insight-item"><div class="insight-label">Sanctum Zone</div><div class="insight-value" id="zoneSanctum">314</div><div class="insight-sub">people detected</div></div>
+                        <div class="insight-item"><div class="insight-label">Queue Zone</div><div class="insight-value" id="zoneQueue" style="color:var(--warning)">367</div><div class="insight-sub">people detected</div></div>
+                        <div class="insight-item"><div class="insight-label">Exit Zone</div><div class="insight-value" id="zoneExit">104</div><div class="insight-sub">people detected</div></div>
+                    </div>
+                    <div class="zone-bars">
+                        <div class="zone-row"><span class="zone-name-label">Entrance</span><div class="zone-bar-track"><div class="zone-bar-fill" id="barEntrance" style="width:25%;background:var(--info)"></div></div><span class="zone-count-label" id="barEntranceVal">262</span></div>
+                        <div class="zone-row"><span class="zone-name-label">Sanctum</span><div class="zone-bar-track"><div class="zone-bar-fill" id="barSanctum" style="width:30%;background:var(--success)"></div></div><span class="zone-count-label" id="barSanctumVal">314</span></div>
+                        <div class="zone-row"><span class="zone-name-label">Queue</span><div class="zone-bar-track"><div class="zone-bar-fill" id="barQueue" style="width:35%;background:var(--warning)"></div></div><span class="zone-count-label" id="barQueueVal">367</span></div>
+                        <div class="zone-row"><span class="zone-name-label">Exit</span><div class="zone-bar-track"><div class="zone-bar-fill" id="barExit" style="width:10%;background:var(--text-2)"></div></div><span class="zone-count-label" id="barExitVal">104</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card prediction-card">
+                    <div class="card-header">
+                        <div><h3><i class="fas fa-brain"></i> AI Crowd Prediction</h3><span class="card-subtitle" id="overviewPredSubtitle">Next 6 hours — based on CSV dataset</span></div>
+                        <span class="prediction-header-badge">LIVE MODEL</span>
+                    </div>
+                    <div class="card-body"><canvas id="predictionChart"></canvas></div>
+                </div>
+                <div class="card alerts-card">
+                    <div class="card-header"><h3><i class="fas fa-bell"></i> Recent Alerts</h3><button class="btn-clear" id="clearAlertsBtn">Clear All</button></div>
+                    <div class="card-body">
+                        <div class="alert-list" id="alertList">
+                            <div class="alert-item warning"><div class="alert-header"><span class="alert-title">🚨 Queue Overcrowded</span><span class="alert-time">Just now</span></div><div class="alert-message">Queue zone exceeded 10 people threshold — crowd_detector.py</div></div>
+                            <div class="alert-item info"><div class="alert-header"><span class="alert-title">⏰ Aarti Time Approaching</span><span class="alert-time">12 min ago</span></div><div class="alert-message">Evening aarti at 18:00 — expect surge to ~959 visitors</div></div>
+                            <div class="alert-item info"><div class="alert-header"><span class="alert-title">📊 Peak Hour Forecast</span><span class="alert-time">15 min ago</span></div><div class="alert-message">AI model predicts peak at 14:00 → ~1,401 visitors expected</div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card live-feed-card">
+                <div class="card-header"><h3><i class="fas fa-video"></i> CCTV Live Feed</h3><div style="display:flex;align-items:center;gap:12px"><span class="live-badge">LIVE</span><button class="btn-control" onclick="toggleFullscreen()"><i class="fas fa-expand"></i></button></div></div>
+                <div class="card-body">
+                    <div id="primaryFeedWrapper" style="position:relative;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--border)">
+                        <video id="primaryVideo" autoplay loop muted playsinline style="width:100%;height:420px;object-fit:cover;display:block" src="assets/crowd1.mp4"><source src="assets/crowd1.mp4" type="video/mp4"></video>
+                        <div class="camera-label" style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.85));padding:10px;font-size:13px;font-weight:600"><i class="fas fa-video"></i> Cam 1 — Main Entrance · <span id="liveCountOverlay">0 people detected</span></div>
+                        <div style="position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite"></div>
+                        <div id="crowdOverlayBadge" style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,.75);border:1px solid var(--primary);border-radius:8px;padding:6px 14px;font-size:14px;font-weight:700"><i class="fas fa-users" style="color:var(--primary);margin-right:6px"></i><span id="overlayCount">0</span> detected</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI PREDICTIONS -->
+        <section id="ai-predictions" class="content-section">
+            <div class="card">
+                <div class="card-header">
+                    <div><h3><i class="fas fa-brain"></i> AI Crowd Predictions</h3><span class="card-subtitle" id="predSectionSubtitle">Computed from Kedarnath &amp; Somnath CSV datasets · 500 records each</span></div>
+                    <div style="display:flex;align-items:center;gap:10px">
+                        <button class="temple-btn" data-t="somnath" onclick="switchPredTemple('somnath',this)">🏛 Somnath</button>
+                        <button class="temple-btn active" data-t="kedarnath" onclick="switchPredTemple('kedarnath',this)">⛰ Kedarnath</button>
+                        <span class="prediction-header-badge">LIVE MODEL</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="pred-grid">
+                        <div>
+                            <h4 style="font-size:13px;color:var(--text-2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Next 6 Hours Forecast</h4>
+                            <div class="pred-chart-wrap"><canvas id="prediction24hChart"></canvas></div>
+                        </div>
+                        <div>
+                            <h4 style="font-size:13px;color:var(--text-2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">Zone Prediction (Current Hour)</h4>
+                            <div class="zone-bars" style="margin-top:8px">
+                                <div class="zone-row"><span class="zone-name-label">Entrance</span><div class="zone-bar-track"><div class="zone-bar-fill" id="predBarEntrance" style="width:25%;background:var(--info)"></div></div><span class="zone-count-label" id="predZoneEntrance">—</span></div>
+                                <div class="zone-row"><span class="zone-name-label">Sanctum</span><div class="zone-bar-track"><div class="zone-bar-fill" id="predBarSanctum" style="width:30%;background:var(--success)"></div></div><span class="zone-count-label" id="predZoneSanctum">—</span></div>
+                                <div class="zone-row"><span class="zone-name-label">Queue</span><div class="zone-bar-track"><div class="zone-bar-fill" id="predBarQueue" style="width:35%;background:var(--warning)"></div></div><span class="zone-count-label" id="predZoneQueue">—</span></div>
+                                <div class="zone-row"><span class="zone-name-label">Exit</span><div class="zone-bar-track"><div class="zone-bar-fill" id="predBarExit" style="width:10%;background:var(--text-2)"></div></div><span class="zone-count-label" id="predZoneExit">—</span></div>
+                            </div>
+                            <div style="margin-top:20px;background:var(--dark-bg);border-radius:10px;padding:14px;border:1px solid var(--border)">
+                                <div style="font-size:11px;color:var(--text-2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Model Info</div>
+                                <div style="font-size:13px;line-height:1.8;color:var(--text-2)">
+                                    <b style="color:var(--text-1)">Algorithm:</b> Hourly/Daily avg from CSV dataset<br>
+                                    <b style="color:var(--text-1)">Features:</b> hour, day_of_week, is_festival, weather<br>
+                                    <b style="color:var(--text-1)">Dataset:</b> 500 records (Jun–Aug 2025)<br>
+                                    <b style="color:var(--text-1)">Temples:</b> Kedarnath · Somnath
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h4 style="font-size:13px;color:var(--text-2);margin:24px 0 12px;text-transform:uppercase;letter-spacing:.5px">Next 7 Days Forecast</h4>
+                    <div class="pred-7day-grid" id="pred7daysGrid"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- HEATMAP -->
+        <section id="heatmap" class="content-section">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-fire"></i> Live Crowd Heatmap</h3><button class="btn-control" id="refreshHeatmap"><i class="fas fa-sync-alt"></i> Refresh</button></div>
+                <div class="card-body">
+                    <div class="heatmap-container"><canvas id="heatmapCanvas"></canvas>
+                        <div class="heatmap-legend">
+                            <div class="legend-item"><span class="legend-color" style="background:#22c55e"></span><span>Low (0–30%)</span></div>
+                            <div class="legend-item"><span class="legend-color" style="background:#eab308"></span><span>Medium (30–70%)</span></div>
+                            <div class="legend-item"><span class="legend-color" style="background:#ef4444"></span><span>High (70–100%)</span></div>
+                        </div>
+                    </div>
+                    <div class="zone-stats" id="zoneStats"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- QUEUE -->
+        <section id="queue" class="content-section">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-users-line"></i> Queue Management</h3><button class="btn-primary"><i class="fas fa-toggle-on"></i> Manage Gates</button></div>
+                <div class="card-body"><div class="queue-grid" id="queueGrid"></div></div>
+            </div>
+        </section>
+
+        <!-- RESOURCES -->
+        <section id="resources" class="content-section">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-user-shield"></i> Resource Deployment</h3><button class="btn-primary"><i class="fas fa-plus"></i> Deploy Resource</button></div>
+                <div class="card-body">
+                    <div class="deployment-suggestions">
+                        <div class="suggestion-title"><i class="fas fa-lightbulb"></i> AI Deployment Suggestions</div>
+                        <ul class="suggestion-list">
+                            <li>Deploy 2 additional crowd marshals to Queue Zone (367 people, threshold: 300)</li>
+                            <li>Activate Entrance Gate 2 — AI predicts 1,401 peak at 14:00</li>
+                            <li>Station medical team at Sanctum — high-density area (314 people)</li>
+                        </ul>
+                    </div>
+                    <div class="resource-grid" id="resourceGrid"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TRAFFIC -->
+        <section id="traffic" class="content-section">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-traffic-light"></i> Traffic &amp; Parking Control</h3></div>
+                <div class="card-body">
+                    <div class="traffic-grid">
+                        <div class="traffic-section"><h4><i class="fas fa-square-parking"></i> Parking Status</h4><div id="parkingStatus"></div></div>
+                        <div class="traffic-section"><h4><i class="fas fa-road"></i> Road Control</h4><div id="roadStatus"></div></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- EMERGENCY -->
+        <section id="emergency" class="content-section">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-ambulance"></i> Emergency Response Center</h3><button class="btn-danger" id="panicAlertBtn">⚠ PANIC ALERT</button></div>
+                <div class="card-body">
+                    <div class="emergency-contacts">
+                        <div class="contact-item"><i class="fas fa-phone-alt"></i><span>Police: <strong>100</strong></span></div>
+                        <div class="contact-item"><i class="fas fa-ambulance"></i><span>Ambulance: <strong>108</strong></span></div>
+                        <div class="contact-item"><i class="fas fa-fire-extinguisher"></i><span>Fire: <strong>101</strong></span></div>
+                    </div>
+                    <div id="emergencyGrid"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ANALYTICS -->
+        <section id="analytics" class="content-section">
+            <div class="analytics-grid">
+                <div class="card"><div class="card-header"><h3><i class="fas fa-chart-line"></i> Visitor Trends (7 Days)</h3></div><div class="card-body"><canvas id="visitorTrendChart" style="height:220px"></canvas></div></div>
+                <div class="card"><div class="card-header"><h3><i class="fas fa-calendar-alt"></i> Upcoming Festivals</h3></div><div class="card-body"><div id="festivalCalendar"></div></div></div>
+            </div>
+        </section>
+
+        <!-- BOOKINGS -->
+        <section id="bookings" class="content-section">
+            <div class="card">
+                <div class="card-header"><h3><i class="fas fa-ticket-alt"></i> Darshan Bookings</h3><div class="booking-filter"><select id="bookingFilter"><option>All Bookings</option><option>Today</option><option>Upcoming</option><option>Completed</option></select></div></div>
+                <div class="card-body">
+                    <div class="bookings-stats" id="bookingsStats"></div>
+                    <div class="booking-table-wrap" id="bookingsTable"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div class="modal hidden" id="suggestionModal">
+    <div class="modal-content">
+        <div class="modal-header"><h3><i class="fas fa-lightbulb"></i> AI Deployment Suggestion</h3><button class="modal-close" id="closeSuggestionModal"><i class="fas fa-times"></i></button></div>
+        <div class="modal-body" id="suggestionModalBody"></div>
+        <div class="modal-footer"><button class="btn-control" id="dismissSuggestion">Dismiss</button><button class="btn-primary" id="acceptSuggestion">Accept &amp; Deploy</button></div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const CROWD_DATA = {
+    kedarnath: {
+        name:'Kedarnath Temple', code:'KDN-002', location:'Rudraprayag, Uttarakhand', maxCapacity:1900,
+        hourly:{0:313,1:299,2:361,3:371,4:365,5:396,6:530,7:544,8:630,9:820,10:1017,11:1067,12:1234,13:1273,14:1401,15:1301,16:1242,17:1048,18:959,19:759,20:674,21:615,22:435,23:362},
+        daily:{0:720,1:700,2:719,3:687,4:667,5:874,6:907},
+        zoneRatios:{entrance:0.25,sanctum:0.30,queue:0.35,exit:0.10},
+        queues:[{name:'Main Gate Entry',capacity:400,waitTime:45},{name:'VIP Darshan',capacity:80,waitTime:10},{name:'Senior Citizen Gate',capacity:120,waitTime:18},{name:'Express Pass',capacity:60,waitTime:5}],
+        parking:[{name:'Base Camp Lot A',total:600,occupied:420},{name:'Helicopter Pad Area',total:200,occupied:175},{name:'VIP Reserved',total:50,occupied:28}],
+        roads:[{name:'Gaurikund Road',open:true},{name:'Helicopter Route',open:true},{name:'Sonprayag Road',open:true},{name:'Emergency Helipad Route',open:true}]
+    },
+    somnath: {
+        name:'Somnath Temple', code:'SNT-001', location:'Veraval, Gujarat', maxCapacity:1400,
+        hourly:{0:256,1:237,2:279,3:259,4:274,5:346,6:327,7:414,8:529,9:598,10:711,11:820,12:906,13:969,14:976,15:993,16:875,17:824,18:679,19:561,20:508,21:392,22:325,23:289},
+        daily:{0:521,1:501,2:520,3:520,4:519,5:670,6:659},
+        zoneRatios:{entrance:0.25,sanctum:0.30,queue:0.35,exit:0.10},
+        queues:[{name:'North Entrance Gate',capacity:300,waitTime:38},{name:'South Entrance Gate',capacity:280,waitTime:42},{name:'VIP Entry',capacity:50,waitTime:8},{name:'Express Darshan',capacity:100,waitTime:15}],
+        parking:[{name:'Parking Lot A',total:500,occupied:425},{name:'Parking Lot B',total:300,occupied:287},{name:'VIP Parking',total:50,occupied:32}],
+        roads:[{name:'Main Access Road',open:true},{name:'North Entry Road',open:true},{name:'South Entry Road',open:false},{name:'Emergency Route',open:true}]
+    }
+};
+
+const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+let activeTemple = 'kedarnath';
+let predChart24h = null, predChart6h = null, visitorChart = null, updateTimer = null;
+
+// ══════════════════════════════════════════════════════
+//  FIXED PREDICTION FUNCTIONS
+//  fetchPredictions passes ?temple=xxx to server.js
+//  which computes averages from the actual CSV files
+// ══════════════════════════════════════════════════════
+let predCache = {};   // keyed per temple
+
+async function fetchPredictions(temple) {
+    temple = temple || activeTemple || 'kedarnath';
+    if (predCache[temple]) return predCache[temple];
+    try {
+        const res = await fetch('/api/predict?temple=' + encodeURIComponent(temple));
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        predCache[temple] = data;
+        setTimeout(() => { delete predCache[temple]; }, 10 * 60 * 1000);
+        return data;
+    } catch(e) {
+        console.warn('⚠️ /api/predict unavailable for', temple, '—', e.message);
+        return null;
+    }
+}
+
+async function renderPredictions() {
+    const temple = activeTemple || 'kedarnath';
+    const preds  = await fetchPredictions(temple);
+    const d      = CROWD_DATA[temple];
+
+    // Update subtitle to show which dataset is in use
+    const srcLabel = (preds && preds.source === 'csv') ? 'real CSV data' : 'dataset averages';
+    const tName    = d ? d.name : temple;
+    const sub1 = document.getElementById('overviewPredSubtitle');
+    const sub2 = document.getElementById('predSectionSubtitle');
+    if (sub1) sub1.textContent = 'Next 6 hours — ' + tName + ' (' + srcLabel + ')';
+    if (sub2) sub2.textContent = 'Computed from ' + tName + ' ' + srcLabel;
+
+    // ── 6-hour line chart (AI Predictions section) ──
+    const ctx = document.getElementById('prediction24hChart');
+    if (ctx) {
+        if (predChart24h) { predChart24h.destroy(); predChart24h = null; }
+        let labels = [], data = [], colors = [];
+
+        if (preds && preds.next24h && preds.next24h.length) {
+            preds.next24h.slice(0,6).forEach(p => {
+                labels.push(p.timestamp.slice(11,16));
+                data.push(p.predicted_crowd);
+                const pct = p.predicted_crowd / (d ? d.maxCapacity : 1400);
+                colors.push(pct>.8?'rgba(239,68,68,.8)':pct>.5?'rgba(234,179,8,.8)':'rgba(34,197,94,.8)');
+            });
+        } else {
+            // fallback: use CROWD_DATA hourly averages
+            const now = new Date();
+            for (let i = 0; i < 6; i++) {
+                const h = (now.getHours() + i) % 24;
+                labels.push(h.toString().padStart(2,'0') + ':00');
+                const v = d ? d.hourly[h] : 0;
+                data.push(v);
+                const pct = v / (d ? d.maxCapacity : 1400);
+                colors.push(pct>.8?'rgba(239,68,68,.8)':pct>.5?'rgba(234,179,8,.8)':'rgba(34,197,94,.8)');
+            }
+        }
+
+        predChart24h = new Chart(ctx.getContext('2d'), {
+            type:'line',
+            data:{ labels, datasets:[{ label:'Predicted Visitors', data, borderColor:'var(--primary)', backgroundColor:'rgba(255,107,53,0.15)', pointBackgroundColor:colors, pointRadius:5, tension:0.4, fill:true }] },
+            options:{
+                responsive:true, maintainAspectRatio:false,
+                plugins:{ legend:{ display:false } },
+                scales:{
+                    x:{ ticks:{ color:'#94a3b8', font:{size:11} }, grid:{ color:'rgba(45,49,66,.5)' } },
+                    y:{ ticks:{ color:'#94a3b8', font:{size:11} }, grid:{ color:'rgba(45,49,66,.5)' }, beginAtZero:true }
+                }
+            }
+        });
+    }
+
+    // ── Zone bars for current-hour prediction ──
+    const cur   = preds && preds.next24h && preds.next24h[0];
+    const total = cur ? cur.predicted_crowd : (d ? d.hourly[new Date().getHours()] : 300);
+    const ratios = d ? d.zoneRatios : { entrance:0.25, sanctum:0.30, queue:0.35, exit:0.10 };
+    const _set  = (id, v) => { const el = document.getElementById(id); if(el) el.textContent = v; };
+    const _setW = (id, w) => { const el = document.getElementById(id); if(el) el.style.width = w + '%'; };
+    _set('predZoneEntrance', Math.round(total * ratios.entrance));
+    _set('predZoneSanctum',  Math.round(total * ratios.sanctum));
+    _set('predZoneQueue',    Math.round(total * ratios.queue));
+    _set('predZoneExit',     Math.round(total * ratios.exit));
+    _setW('predBarEntrance', Math.round(ratios.entrance * 100));
+    _setW('predBarSanctum',  Math.round(ratios.sanctum  * 100));
+    _setW('predBarQueue',    Math.round(ratios.queue    * 100));
+    _setW('predBarExit',     Math.round(ratios.exit     * 100));
+
+    render7DayGrid(preds, temple);
+}
+
+function render7DayGrid(preds, temple) {
+    const grid = document.getElementById('pred7daysGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const d = CROWD_DATA[temple || activeTemple || 'kedarnath'];
+
+    if (preds && preds.next7d && preds.next7d.length) {
+        preds.next7d.forEach((p, i) => {
+            const crowd = p.peak_crowd;
+            const cap   = d ? d.maxCapacity : 1400;
+            const lvl   = crowd > cap*.8 ? 'high' : crowd > cap*.5 ? 'medium' : 'low';
+            const div   = document.createElement('div');
+            div.className = 'day-card' + (i===0?' today':'');
+            div.innerHTML = `<div class="day-name">${p.day.slice(0,3)}</div><div class="day-crowd">${crowd.toLocaleString()}</div><div class="day-level ${lvl}">${lvl.charAt(0).toUpperCase()+lvl.slice(1)}</div>`;
+            grid.appendChild(div);
+        });
+    } else {
+        const now = new Date();
+        for (let i = 0; i < 7; i++) {
+            const dt = new Date(now); dt.setDate(dt.getDate()+i);
+            const dow = (dt.getDay()+6)%7;
+            const crowd = d ? d.daily[dow] : 500;
+            const cap   = d ? d.maxCapacity : 1400;
+            const lvl   = crowd > cap*.8 ? 'high' : crowd > cap*.5 ? 'medium' : 'low';
+            const div   = document.createElement('div');
+            div.className = 'day-card' + (i===0?' today':'');
+            div.innerHTML = `<div class="day-name">${DAYS[dow]}</div><div class="day-crowd">${crowd.toLocaleString()}</div><div class="day-level ${lvl}">${lvl.charAt(0).toUpperCase()+lvl.slice(1)}</div>`;
+            grid.appendChild(div);
+        }
+    }
+}
+// ══════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', () => {
+    initNav(); initDateTime(); renderAll(); updateTimer = setInterval(tickLive, 4000);
+    const vid = document.getElementById('primaryVideo');
+    if (vid) vid.onerror = () => { vid.parentElement.innerHTML = `<div style="width:100%;height:420px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0d1117;gap:12px;"><i class="fas fa-video" style="font-size:40px;color:var(--primary);opacity:.6"></i><p style="color:var(--text-2);font-size:13px;">crowd1.mp4 not found — place in /backend/public/assets/</p></div>`; };
+    document.getElementById('logoutBtn').onclick = () => { if(confirm('Logout?')) { sessionStorage.removeItem('userSession'); window.location.href = 'login.html'; } };
+    document.getElementById('menuToggle').onclick = () => document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('closeSuggestionModal').onclick = () => document.getElementById('suggestionModal').classList.add('hidden');
+    document.getElementById('dismissSuggestion').onclick   = () => document.getElementById('suggestionModal').classList.add('hidden');
+    document.getElementById('acceptSuggestion').onclick    = () => document.getElementById('suggestionModal').classList.add('hidden');
+    document.getElementById('panicAlertBtn').onclick = () => { if(confirm('⚠️ Trigger PANIC ALERT? This will notify all emergency services.')) alert('🚨 PANIC ALERT ACTIVATED\nAll emergency services have been notified!'); };
+    document.getElementById('clearAlertsBtn').onclick = () => { document.getElementById('alertList').innerHTML = '<div style="text-align:center;color:var(--text-2);padding:20px">No active alerts</div>'; };
+});
+
+function initNav() {
+    document.querySelectorAll('.nav-item[data-section]').forEach(item => {
+        item.addEventListener('click', e => {
+            e.preventDefault();
+            const sec = item.dataset.section;
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            item.classList.add('active');
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sec).classList.add('active');
+            document.getElementById('pageTitle').textContent = item.querySelector('span').textContent;
+            if (sec==='heatmap')        initHeatmap();
+            if (sec==='analytics')      initAnalytics();
+            if (sec==='queue')          initQueue();
+            if (sec==='resources')      initResources();
+            if (sec==='traffic')        initTraffic();
+            if (sec==='emergency')      initEmergency();
+            if (sec==='bookings')       initBookings();
+            if (sec==='ai-predictions') renderPredictions();
+            if (window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open');
+        });
+    });
+}
+
+function initDateTime() {
+    const tick = () => {
+        const now = new Date();
+        document.getElementById('currentDate').textContent = now.toLocaleDateString('en-IN',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    };
+    tick(); setInterval(tick,1000);
+}
+
+function switchTemple(t, btn) {
+    activeTemple = t;
+    document.querySelectorAll('.header-right .temple-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const d = CROWD_DATA[t];
+    document.getElementById('templeNameSidebar').textContent = d.name;
+    document.getElementById('templeCode').textContent = d.code;
+    document.getElementById('templeLocation').textContent = d.location;
+    renderAll();
+}
+
+function switchPredTemple(t, btn) {
+    activeTemple = t;
+    document.querySelectorAll('[data-t]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderPredictions();
+}
+
+function renderAll() { updateStats(); renderPredChart6h(); renderPredictions(); }
+
+const socket = io();
+let detectorConnected = false;
+socket.on('connect',    () => { detectorConnected=true;  const d=document.getElementById('detectorDot'); if(d) d.classList.add('active'); });
+socket.on('disconnect', () => { detectorConnected=false; const d=document.getElementById('detectorDot'); if(d) d.classList.remove('active'); });
+socket.on('heatmap_update', data => updateStatsFromDetector(data));
+
+const DETECTOR_MAX_CAPACITY = 25;
+let prevDetectorTotal = null;
+
+function updateStatsFromDetector(data) {
+    const total=data.totalCount??0, zones=data.zones??{entrance:0,queue:0,sanctum:0,exit:0};
+    const waitMin=(data.waiting_time??0).toFixed(1), alertArr=data.alerts??[], alertCnt=alertArr.length;
+    const cap=Math.min(100,Math.round(total/DETECTOR_MAX_CAPACITY*100));
+    document.getElementById('currentVisitors').textContent=total;
+    document.getElementById('avgWaitTime').textContent=waitMin+' min';
+    document.getElementById('capacity').textContent=cap+'%';
+    document.getElementById('alerts').textContent=alertCnt;
+    document.getElementById('visitorMeter').style.width=cap+'%';
+    document.getElementById('waitMeter').style.width=Math.min(100,parseFloat(waitMin)*20)+'%';
+    document.getElementById('capacityMeter').style.width=cap+'%';
+    document.getElementById('capacityMeter').style.background=cap>80?'var(--danger)':cap>50?'var(--warning)':'var(--success)';
+    document.getElementById('alertMeter').style.width=Math.min(100,alertCnt*33)+'%';
+    const vcEl=document.getElementById('visitorChange');
+    if(prevDetectorTotal!==null&&prevDetectorTotal>0){const chg=(((total-prevDetectorTotal)/prevDetectorTotal)*100).toFixed(1);vcEl.textContent=(chg>=0?'+':'')+chg+'%';vcEl.className='stat-change '+(chg>=0?'positive':'negative');}else{vcEl.textContent='Live';vcEl.className='stat-change neutral';}
+    prevDetectorTotal=total;
+    const capSt=document.getElementById('capacityStatus');capSt.textContent=cap<40?'Normal':cap<75?'Moderate':'High';capSt.className='stat-change '+(cap<40?'neutral':cap<75?'positive':'negative');
+    document.getElementById('waitChange').textContent=parseFloat(waitMin)>5?'Above Average':'Normal';document.getElementById('waitChange').className='stat-change '+(parseFloat(waitMin)>5?'negative':'neutral');
+    document.getElementById('alertStatus').textContent=alertCnt>0?'Requires Attention':'All Clear';document.getElementById('alertStatus').className='stat-change '+(alertCnt>0?'negative':'positive');
+    updateZoneUI(zones.entrance??0,zones.sanctum??0,zones.queue??0,zones.exit??0,total);
+    const ov=document.getElementById('overlayCount'),lv=document.getElementById('liveCountOverlay');
+    if(ov)ov.textContent=total; if(lv)lv.textContent=total+' people detected';
+    const alertList=document.getElementById('alertList');
+    if(alertList&&alertArr.length>0) alertList.innerHTML=alertArr.map(a=>`<div style="padding:10px 14px;background:rgba(239,68,68,.1);border-left:3px solid var(--danger);border-radius:6px;margin-bottom:8px;font-size:13px;">${a}</div>`).join('');
+    else if(alertList&&alertArr.length===0) alertList.innerHTML='<div style="text-align:center;color:var(--text-2);padding:20px">No active alerts</div>';
+}
+
+function updateStats() {
+    if(!detectorConnected){['currentVisitors','avgWaitTime','capacity','alerts'].forEach(id=>{const el=document.getElementById(id);if(el&&el.textContent.match(/^\d/))return;if(el)el.textContent=id==='avgWaitTime'?'-- min':id==='capacity'?'--%':'--';});const dot=document.getElementById('detectorDot');if(dot){dot.style.opacity='.3';setTimeout(()=>{dot.style.opacity='1';},300);}}
+}
+
+function updateZoneUI(entrance,sanctum,queue,exit_,total){
+    const set=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+    const setW=(id,pct)=>{const el=document.getElementById(id);if(el)el.style.width=pct+'%';};
+    set('zoneEntrance',entrance);set('zoneSanctum',sanctum);set('zoneQueue',queue);set('zoneExit',exit_);
+    set('barEntranceVal',entrance);set('barSanctumVal',sanctum);set('barQueueVal',queue);set('barExitVal',exit_);
+    if(total>0){setW('barEntrance',Math.round(entrance/total*100));setW('barSanctum',Math.round(sanctum/total*100));setW('barQueue',Math.round(queue/total*100));setW('barExit',Math.round(exit_/total*100));}
+    const qEl=document.getElementById('barQueue');if(qEl)qEl.style.background=queue>300?'var(--danger)':queue>150?'var(--warning)':'var(--success)';
+}
+
+function renderPredChart6h(){
+    const now=new Date(),d=CROWD_DATA[activeTemple],labels=[],data=[],bgColors=[];
+    for(let i=0;i<6;i++){const h=(now.getHours()+i)%24;const v=d.hourly[h];labels.push(h.toString().padStart(2,'0')+':00');data.push(v);bgColors.push((h===6||h===7||h===18||h===19)?'rgba(247,147,30,0.85)':'rgba(255,107,53,0.75)');}
+    const ctx=document.getElementById('predictionChart');if(!ctx)return;
+    if(predChart6h){predChart6h.destroy();predChart6h=null;}
+    predChart6h=new Chart(ctx.getContext('2d'),{type:'bar',data:{labels,datasets:[{label:'Predicted Visitors',data,backgroundColor:bgColors,borderColor:'rgba(255,107,53,1)',borderWidth:1,borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:ctx=>{const h=(now.getHours()+ctx.dataIndex)%24;return(h===6||h===7||h===18||h===19)?'⏰ Aarti time — surge expected':'';} }}},scales:{x:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'rgba(45,49,66,.5)'}},y:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'rgba(45,49,66,.5)'},beginAtZero:true}}}});
+}
+
+function tickLive(){if(!detectorConnected)updateStats();const dot=document.getElementById('detectorDot');if(dot){dot.style.opacity='.3';setTimeout(()=>{dot.style.opacity='1';},200);}}
+
+function initHeatmap(){
+    const canvas=document.getElementById('heatmapCanvas');if(!canvas)return;
+    const ctx=canvas.getContext('2d');canvas.width=canvas.offsetWidth;canvas.height=400;
+    const d=CROWD_DATA[activeTemple],now=new Date(),total=d.hourly[now.getHours()]||500;
+    const zones=[{name:'Entrance',x:30,y:30,w:140,h:100,density:Math.round(d.zoneRatios.entrance*total/d.maxCapacity*100)},{name:'Queue',x:190,y:30,w:180,h:100,density:Math.round(d.zoneRatios.queue*total/d.maxCapacity*100)},{name:'Sanctum',x:200,y:155,w:160,h:130,density:Math.round(d.zoneRatios.sanctum*total/d.maxCapacity*100)},{name:'Exit',x:380,y:155,w:140,h:130,density:Math.round(d.zoneRatios.exit*total/d.maxCapacity*100)}];
+    ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#0d1117';ctx.fillRect(0,0,canvas.width,canvas.height);
+    zones.forEach(z=>{const c=z.density<30?'#22c55e':z.density<70?'#eab308':'#ef4444';ctx.fillStyle=c;ctx.globalAlpha=0.55;ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h,10);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.beginPath();ctx.roundRect(z.x,z.y,z.w,z.h,10);ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 12px Segoe UI';ctx.fillText(z.name,z.x+10,z.y+22);ctx.font='bold 28px Segoe UI';ctx.fillStyle='#fff';ctx.fillText(z.density+'%',z.x+10,z.y+60);ctx.font='11px Segoe UI';ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillText(Math.round(z.density*d.maxCapacity/100)+' people',z.x+10,z.y+80);});
+    const zoneStats=document.getElementById('zoneStats');if(zoneStats){zoneStats.innerHTML='';zones.forEach(z=>{const lvl=z.density<30?'low':z.density<70?'medium':'high';const div=document.createElement('div');div.className=`zone-card ${lvl}`;div.innerHTML=`<div class="zone-name">${z.name}</div><div class="zone-occupancy">${z.density}%</div><div class="zone-count">${Math.round(z.density*d.maxCapacity/100)} people</div>`;zoneStats.appendChild(div);});}
+    document.getElementById('refreshHeatmap').onclick=()=>initHeatmap();
+}
+
+function initQueue(){
+    const grid=document.getElementById('queueGrid');if(!grid)return;
+    const d=CROWD_DATA[activeTemple],now=new Date(),total=d.hourly[now.getHours()]||500;
+    grid.innerHTML='';
+    d.queues.forEach(q=>{const current=Math.min(q.capacity,Math.round(total*.25+Math.random()*50)),pct=Math.round(current/q.capacity*100);const div=document.createElement('div');div.className='queue-item';div.innerHTML=`<div class="queue-header"><div class="queue-name">${q.name}</div><div class="queue-status">${pct>90?'🔴 Full':'🟢 Open'}</div></div><div class="queue-meta"><span>${current} / ${q.capacity} people</span><span>⏱ ~${q.waitTime} min wait</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>80?'var(--danger)':pct>50?'var(--warning)':'var(--primary)'}"></div></div>`;grid.appendChild(div);});
+}
+
+function initResources(){
+    const grid=document.getElementById('resourceGrid');if(!grid)return;
+    const resources=[{name:'Marshal Team A',location:'Main Entrance',status:'Active'},{name:'Medical Unit 1',location:'Sanctum Zone',status:'Active'},{name:'CCTV Operator',location:'Control Room',status:'Active'},{name:'Parking Staff',location:'Lot A',status:'Active'},{name:'Emergency Squad',location:'Queue Zone',status:'Active'},{name:'Info Desk Staff',location:'Gate B',status:'Active'}];
+    grid.innerHTML='';resources.forEach(r=>{const div=document.createElement('div');div.className='resource-item';div.innerHTML=`<div class="resource-name">${r.name}</div><div class="resource-location"><i class="fas fa-map-marker-alt" style="color:var(--primary);margin-right:4px"></i>${r.location}</div><span class="resource-status active">● ${r.status}</span>`;grid.appendChild(div);});
+}
+
+function initTraffic(){
+    const ps=document.getElementById('parkingStatus'),rs=document.getElementById('roadStatus'),d=CROWD_DATA[activeTemple];
+    if(ps){ps.innerHTML='';d.parking.forEach(lot=>{const avail=lot.total-lot.occupied,pct=Math.round(lot.occupied/lot.total*100);const div=document.createElement('div');div.className='parking-lot';div.innerHTML=`<div class="parking-header"><span>${lot.name}</span><span style="color:${avail<50?'var(--danger)':'var(--success)'}">${avail} available</span></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${pct>80?'var(--danger)':pct>50?'var(--warning)':'var(--success)'}"></div></div>`;ps.appendChild(div);});}
+    if(rs){rs.innerHTML='';d.roads.forEach(road=>{const div=document.createElement('div');div.className='road-item';div.innerHTML=`<span>${road.name}</span><div class="toggle-switch ${road.open?'active':''}" onclick="this.classList.toggle('active')"><div class="toggle-slider"></div></div>`;rs.appendChild(div);});}
+}
+
+function initEmergency(){
+    const g=document.getElementById('emergencyGrid');if(!g)return;
+    const emgs=[{type:'Medical Emergency',location:'Queue Area, Gate B',time:'5 min ago',status:'Responding'},{type:'Lost Child Alert',location:'Main Sanctum Entry',time:'12 min ago',status:'Resolved'}];
+    g.innerHTML='';emgs.forEach(e=>{const div=document.createElement('div');div.className='emergency-item';div.innerHTML=`<div class="emergency-header"><span class="emergency-type">${e.type}</span><span class="emergency-time">${e.time}</span></div><div class="emergency-location"><i class="fas fa-map-marker-alt"></i> ${e.location}</div><div class="emergency-actions"><button class="btn-control">View Details</button>${e.status==='Responding'?'<button class="btn-primary">Mark Resolved</button>':'<span style="color:var(--success);font-size:12px">✓ Resolved</span>'}</div>`;g.appendChild(div);});
+}
+
+function initAnalytics(){
+    const d=CROWD_DATA[activeTemple],now=new Date(),labels=[],data=[];
+    for(let i=6;i>=0;i--){const dt=new Date(now);dt.setDate(dt.getDate()-i);const dow=(dt.getDay()+6)%7;labels.push(DAYS[dow]);data.push(d.daily[dow]);}
+    const ctx=document.getElementById('visitorTrendChart');if(!ctx)return;
+    if(visitorChart){visitorChart.destroy();visitorChart=null;}
+    visitorChart=new Chart(ctx.getContext('2d'),{type:'line',data:{labels,datasets:[{label:'Visitors',data,borderColor:'var(--primary)',backgroundColor:'rgba(255,107,53,.12)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'var(--primary)'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'rgba(45,49,66,.5)'}},y:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'rgba(45,49,66,.5)'},beginAtZero:true}}}});
+    const fc=document.getElementById('festivalCalendar');
+    if(fc){const festivals=[{date:'Apr 14, 2026',name:'Ram Navami',crowd:'Expected: 35,000+'},{date:'May 11, 2026',name:'Buddha Purnima',crowd:'Expected: 28,000+'},{date:'Jul 21, 2026',name:'Guru Purnima',crowd:'Expected: 40,000+'},{date:'Aug 23, 2026',name:'Janmashtami',crowd:'Expected: 50,000+'}];fc.innerHTML='';festivals.forEach(f=>{const div=document.createElement('div');div.className='festival-item';div.innerHTML=`<div class="festival-date">${f.date}</div><div class="festival-name">${f.name}</div><div class="festival-crowd">${f.crowd}</div>`;fc.appendChild(div);});}
+}
+
+function initBookings(){
+    const stats=document.getElementById('bookingsStats');
+    if(stats)stats.innerHTML=`<div class="booking-stat"><div class="num">1,248</div><div class="label">Today's Bookings</div></div><div class="booking-stat"><div class="num">342</div><div class="label">Upcoming</div></div><div class="booking-stat"><div class="num">856</div><div class="label">Completed</div></div><div class="booking-stat"><div class="num">50</div><div class="label">Cancelled</div></div>`;
+    const tbl=document.getElementById('bookingsTable');
+    if(tbl){const rows=[{id:'#BK-2892',name:'Rajesh Kumar',type:'General Darshan',time:'11:00 AM',status:'confirmed'},{id:'#BK-2891',name:'Priya Sharma',type:'VIP Darshan',time:'10:30 AM',status:'confirmed'},{id:'#BK-2890',name:'Amit Patel',type:'Express Darshan',time:'10:00 AM',status:'pending'},{id:'#BK-2889',name:'Sunita Devi',type:'Senior Citizen',time:'09:30 AM',status:'confirmed'},{id:'#BK-2888',name:'Mohan Lal',type:'General Darshan',time:'09:00 AM',status:'cancelled'}];tbl.innerHTML=`<table><thead><tr><th>Booking ID</th><th>Name</th><th>Type</th><th>Time Slot</th><th>Status</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.id}</td><td>${r.name}</td><td>${r.type}</td><td>${r.time}</td><td><span class="badge ${r.status}">${r.status.charAt(0).toUpperCase()+r.status.slice(1)}</span></td></tr>`).join('')}</tbody></table>`;}
+}
+
+function toggleFullscreen(){const v=document.getElementById('primaryVideo');if(v&&v.requestFullscreen)v.requestFullscreen();}
+</script>
+</body>
+</html>
